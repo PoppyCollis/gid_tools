@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from gid_tools.layers.nin import Nin
+from gid_tools.diffusion_model.layers.nin import Nin
 
 class ResNetBlock(nn.Module):
 

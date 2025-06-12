@@ -2,10 +2,10 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from gid_tools.embeddings import get_timestep_embedding
-from gid_tools.layers.downsample import Downsample
-from gid_tools.layers.upsample import Upsample
-from gid_tools.blocks import ResNetBlock, AttentionBlock
+from gid_tools.diffusion_model.embeddings import get_timestep_embedding
+from gid_tools.diffusion_model.layers.downsample import Downsample
+from gid_tools.diffusion_model.layers.upsample import Upsample
+from gid_tools.diffusion_model.blocks import ResNetBlock, AttentionBlock
 
 class UNet(nn.Module):
 

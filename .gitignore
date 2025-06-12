@@ -3,6 +3,7 @@ __pycache__/
 *.py[cod]
 *$py.class
 
+
 # C extensions
 *.so
 
@@ -56,4 +57,7 @@ coverage.xml
 # Windows
 Thumbs.db
 ehthumbs.db
+
+# Ignore generated outputs
+outputs/
 
