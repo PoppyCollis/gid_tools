@@ -48,7 +48,7 @@ print("Loaded pretrained weights into UNet.")
 # Sampling
 # 7) Sampling
 samples = diffusion.sampling(
-    n_samples=1,
+    n_samples=10,
     image_channels=1,
     img_size=(32, 32),
     use_tqdm=True
