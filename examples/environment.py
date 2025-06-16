@@ -1,7 +1,7 @@
 import torch
 import matplotlib.pyplot as plt
 from custom_tool_dataset import *
-from plots import display_samples_with_feedback
+from gid_tools.viz.plots import display_samples_with_feedback
 
 def pixel_area_tensor(img: torch.Tensor, threshold: float = 0.0) -> int:
     """
