@@ -2,12 +2,11 @@ import os
 import sys
 import subprocess
 from pathlib import Path
-import numpy as np
-from PIL import Image
 import torch
 
 from gid_tools.diffusion_model.unet import UNet
 from gid_tools.diffusion_model.diffusion import DiffusionModel
+from gid_tools.viz.utils import save_samples
 
 # Project root and checkpoint path setup
 ROOT_DIR = Path(__file__).resolve().parent.parent
@@ -48,20 +47,13 @@ print("Loaded pretrained weights into UNet.")
 # Sampling
 # 7) Sampling
 samples = diffusion.sampling(
-    n_samples=10,
+    n_samples=5,
     image_channels=1,
     img_size=(32, 32),
     use_tqdm=True
 )
 
 OUTPUT_DIR = ROOT_DIR / "outputs" / "pretrained_diffusion"
-OUTPUT_DIR.mkdir(exist_ok=True)
+OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
-for idx, img_tensor in enumerate(samples):
-    # scale from [-1,1] to [0,255]
-    arr = img_tensor.squeeze().cpu().numpy()
-    arr = ((arr + 1) * 127.5).clip(0, 255).astype("uint8")
-    img = Image.fromarray(arr)
-    out_path = OUTPUT_DIR / f"sample_{idx}.png"
-    img.save(out_path)
-    print(f"Saved sample {idx} → {out_path}")
+save_samples(samples, OUTPUT_DIR, prefix="sample")
