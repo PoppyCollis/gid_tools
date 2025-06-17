@@ -3,6 +3,10 @@ import torch.nn as nn
 from gid_tools.diffusion_model.unet import UNet
 from gid_tools.reward_model.reward_mlp import RewardMLP
 
+import sys
+import subprocess
+from pathlib import Path
+
 """
 Try instead ...
 
@@ -30,7 +34,14 @@ class LinearRewardModel(nn.Module):
         # 1) instantiate U-Net backbone
         self.unet = UNet(ch=ch, in_ch=in_ch).to(device)
         if unet_ckpt_path:
-            self.unet.load_state_dict(torch.load(unet_ckpt_path, map_location=device))
+            ckpt = torch.load(unet_ckpt_path, map_location=device)
+            if "model_state_dict" in ckpt:
+                state_dict = ckpt["model_state_dict"]
+            else:
+                state_dict = ckpt
+
+            self.unet.load_state_dict(state_dict)
+            #self.unet.load_state_dict(torch.load(unet_ckpt_path, map_location=device))
         self.unet.eval()
         
         # zero-out the 2 lin layers that project the sinusoidal embedding into the net
@@ -75,6 +86,27 @@ class LinearRewardModel(nn.Module):
 
 
 def main():
-    reward_model = LinearRewardModel(unet_ckpt_path=None)
-    t = torch.zeros(B, dtype=torch.long, device=x.device)
+    
+    # Project root and checkpoint path setup
+    ROOT_DIR = Path(__file__).resolve().parents[2]
+    CHECKPOINT_DIR = ROOT_DIR / "checkpoints"
+    CKPT_FILE = "diffusion_ckpt.pth"
+    CKPT_PATH = CHECKPOINT_DIR / CKPT_FILE
+
+    # If checkpoint is missing, download using download_model_weights.py
+    if not CKPT_PATH.exists():
+        print(f"Checkpoint not found at {CKPT_PATH}. Downloading...")
+        download_script = ROOT_DIR / "scripts" / "download_model_weights.py"
+        if not download_script.exists():
+            raise FileNotFoundError(f"Download script not found: {download_script}")
+        subprocess.run([sys.executable, str(download_script)], check=True)
+    
+    reward_model = LinearRewardModel(unet_ckpt_path=CKPT_PATH)
+    t = torch.zeros(1, dtype=torch.long, device=x.device)
+    # for now lets get an example x from the outputs file
+    x = ...
     rewards = reward_model(x, t)
+    
+    
+if __name__ == "__main__":
+    main()

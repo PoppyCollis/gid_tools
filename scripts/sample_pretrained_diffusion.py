@@ -22,10 +22,6 @@ if not CKPT_PATH.exists():
         raise FileNotFoundError(f"Download script not found: {download_script}")
     subprocess.run([sys.executable, str(download_script)], check=True)
 
-# Import and instantiate your diffusion model
-# Adjust import to match your actual package name if different
-from gid_tools.diffusion_model.unet import UNet  # replace with your actual model class
-
 # Device
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print("Using device:", device)
