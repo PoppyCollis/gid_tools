@@ -81,17 +81,3 @@ class ToolRewardEnv:
             raise KeyError(f"Reward method '{method}' not found. Available methods: {self.list_methods()}")
         fn = self._rewards[method]
         return fn(img, **kwargs)
-
-def main():
-    
-    # start with an empty registry
-    env = ToolRewardEnv(default_method=None)       
-    env.register_reward('pixel_area', pixel_area_tensor)
-
-    # now compute
-    #reward = env.compute(img_tensor, method='pixel_area', threshold=0.2)
-    #print("Area above 0.2:", reward)
-    
-if __name__ == "__main__":
-    main()
-    

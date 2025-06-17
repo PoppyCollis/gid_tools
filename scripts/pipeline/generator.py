@@ -10,7 +10,7 @@ import torch
 
 from gid_tools.diffusion_model.unet import UNet
 from gid_tools.diffusion_model.diffusion import DiffusionModel
-from gid_tools.viz.utils import save_samples
+from gid_tools.viz.utils import save_samples, download_checkpoint
 
 
 def main():
@@ -19,19 +19,11 @@ def main():
 
     # Project root and checkpoint path setup
     ROOT_DIR = Path(__file__).resolve().parents[2]
-    CHECKPOINT_DIR = ROOT_DIR / "checkpoints"
-    CKPT_FILE = "diffusion_ckpt.pth"
-    CKPT_PATH = CHECKPOINT_DIR / CKPT_FILE
-    CUR_DIR = ROOT_DIR = Path(__file__).resolve().parent
-
-    # If checkpoint is missing, download using download_model_weights.py
-    if not CKPT_PATH.exists():
-        print(f"Checkpoint not found at {CKPT_PATH}. Downloading...")
-        download_script = ROOT_DIR / "scripts" / "download_model_weights.py"
-        if not download_script.exists():
-            raise FileNotFoundError(f"Download script not found: {download_script}")
-        subprocess.run([sys.executable, str(download_script)], check=True)
-
+    # Ensure checkpoint is available (downloads if missing)
+    CKPT_PATH = download_checkpoint(ROOT_DIR)
+    # Script’s own directory (for samples output)
+    CUR_DIR = Path(__file__).resolve().parent
+    
     # Device
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print("Using device:", device)
@@ -42,10 +34,8 @@ def main():
 
     # Load pretrained weights
     ckpt = torch.load(str(CKPT_PATH), map_location=device)
-    if isinstance(ckpt, dict) and 'model_state_dict' in ckpt:
-        state_dict = ckpt['model_state_dict']
-    else:
-        state_dict = ckpt
+    state_dict = ckpt.get('model_state_dict', ckpt) if isinstance(ckpt, dict) else ckpt
+
     model.load_state_dict(state_dict)
     model.eval()
     print("Loaded pretrained weights into UNet.")

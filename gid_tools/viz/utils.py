@@ -6,6 +6,11 @@ from pathlib import Path
 from PIL import Image
 import numpy as np
 from typing import Union
+import torch
+from torchvision import transforms
+import subprocess
+import sys
+
 
 def save_samples(
     samples, 
@@ -51,3 +56,31 @@ def save_samples(
         pil_img = Image.fromarray(img)
         filename = f"{prefix}_{idx}.png"
         pil_img.save(output_path / filename)
+
+
+def load_image_as_tensor(image_path: Path) -> torch.Tensor:
+    transform = transforms.Compose([
+        transforms.Grayscale(),  # ensure single channel
+        transforms.ToTensor(),   # scales to [0,1]
+        transforms.Lambda(lambda x: x * 2 - 1)  # rescale to [-1, 1]
+    ])
+    img = Image.open(image_path).convert('L')  # convert to grayscale
+    return transform(img)
+
+
+def download_checkpoint(root_dir: Path, script_name: str = "download_model_weights.py") -> Path:
+    """
+    Ensure the diffusion model checkpoint is available, downloading it if necessary.
+    Returns the path to the checkpoint file.
+    """
+    ckpt_dir = root_dir / "checkpoints"
+    ckpt_dir.mkdir(parents=True, exist_ok=True)
+    ckpt_file = "diffusion_ckpt.pth"
+    ckpt_path = ckpt_dir / ckpt_file
+    if not ckpt_path.exists():
+        print(f"Checkpoint not found at {ckpt_path}. Downloading...")
+        download_script = root_dir / "scripts" / script_name
+        if not download_script.exists():
+            raise FileNotFoundError(f"Download script not found: {download_script}")
+        subprocess.run([sys.executable, str(download_script)], check=True)
+    return ckpt_path
