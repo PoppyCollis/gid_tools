@@ -10,7 +10,7 @@ import torch
 
 from gid_tools.diffusion_model.unet import UNet
 from gid_tools.diffusion_model.diffusion import DiffusionModel
-from gid_tools.viz.utils import save_samples, download_checkpoint
+from gid_tools.helpers.utils import save_samples, download_checkpoint
 
 
 def main():

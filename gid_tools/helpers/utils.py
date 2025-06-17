@@ -10,6 +10,8 @@ import torch
 from torchvision import transforms
 import subprocess
 import sys
+import json
+from torch.utils.data import TensorDataset
 
 
 def save_samples(
@@ -84,3 +86,75 @@ def download_checkpoint(root_dir: Path, script_name: str = "download_model_weigh
             raise FileNotFoundError(f"Download script not found: {download_script}")
         subprocess.run([sys.executable, str(download_script)], check=True)
     return ckpt_path
+
+
+
+def build_reward_dataset(
+    features_dir: Path,
+    rewards_path: Path,
+) -> TensorDataset:
+    """
+    Load extracted feature files from a directory and corresponding rewards,
+    returning a TensorDataset.
+
+    Args:
+        features_dir (Path): Directory containing .npz files named like sample_{idx}_features.npz
+        rewards_path (Path): Path to the .json file mapping sample filenames to scalar rewards.
+
+    Returns:
+        TensorDataset: A dataset of (features, reward) pairs as torch tensors.
+    """
+    # Validate inputs
+    if not features_dir.exists():
+        raise FileNotFoundError(f"Features directory not found: {features_dir}")
+    if not features_dir.is_dir():
+        raise NotADirectoryError(f"Expected a directory for features, got: {features_dir}")
+    if not rewards_path.is_file():
+        raise FileNotFoundError(f"Rewards file not found: {rewards_path}")
+
+    # Load rewards mapping
+    with open(rewards_path, "r") as f:
+        rewards_dict = json.load(f)
+
+    # Collect feature files
+    feature_files = sorted(p for p in features_dir.glob("*.npz") if p.is_file())
+    if not feature_files:
+        raise FileNotFoundError(f"No .npz feature files found in {features_dir}")
+
+    features_list = []
+    rewards_list = []
+
+    for feat_file in feature_files:
+        # e.g., 'sample_0_features.npz' -> sample key 'sample_0.png'
+        stem = feat_file.stem
+        sample_key = stem.rsplit('_', 1)[0] + '.png'
+
+        if sample_key not in rewards_dict:
+            raise KeyError(f"Missing reward for {sample_key} (from {feat_file.name})")
+
+        # Load the numpy archive
+        try:
+            data = np.load(feat_file)
+        except Exception as e:
+            raise IOError(f"Error loading {feat_file}: {e}")
+
+        # Extract array: if .npz, take the first array in the archive
+        if isinstance(data, np.lib.npyio.NpzFile):
+            if not data.files:
+                raise ValueError(f"No arrays found in {feat_file}")
+            arr = data[data.files[0]]
+        else:
+            arr = data
+
+        features_list.append(arr.astype(np.float32))
+        rewards_list.append(float(rewards_dict[sample_key]))
+
+    # Stack into arrays
+    features = np.stack(features_list, axis=0)
+    rewards = np.array(rewards_list, dtype=np.float32)
+
+    # Convert to torch tensors
+    X = torch.from_numpy(features)
+    y = torch.from_numpy(rewards)
+
+    return TensorDataset(X, y)

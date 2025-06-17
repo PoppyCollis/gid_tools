@@ -4,9 +4,8 @@ Step 2. Get reward feedback for generated images in the output folder
 
 from pathlib import Path
 import json
-
 from gid_tools.envs.feedback import ToolRewardEnv, pixel_area_tensor
-from gid_tools.viz.utils import load_image_as_tensor
+from gid_tools.helpers.utils import load_image_as_tensor
 
 
 def main():

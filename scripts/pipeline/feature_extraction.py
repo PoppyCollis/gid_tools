@@ -10,7 +10,7 @@ from PIL import Image
 from torchvision import transforms
 
 from gid_tools.reward_model.linear_reward_model import LinearRewardModel
-from gid_tools.viz.utils import download_checkpoint
+from gid_tools.helpers.utils import download_checkpoint
 
 
 def main():

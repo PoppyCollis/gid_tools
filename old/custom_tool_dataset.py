@@ -2,7 +2,7 @@ import numpy as np
 from torch.utils.data import Dataset
 import json
 import torchvision.transforms as transforms
-from gid_tools.viz.plots import make_bracket_image, render_T_image, render_V_image
+from gid_tools.helpers.plots import make_bracket_image, render_T_image, render_V_image
 
 class DiffusionToolDataset(Dataset):
     def __init__(self, jsonl_path):

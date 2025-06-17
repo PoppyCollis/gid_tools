@@ -6,7 +6,7 @@ import torch
 
 from gid_tools.diffusion_model.unet import UNet
 from gid_tools.diffusion_model.diffusion import DiffusionModel
-from gid_tools.viz.utils import save_samples
+from gid_tools.helpers.utils import save_samples
 
 # Project root and checkpoint path setup
 ROOT_DIR = Path(__file__).resolve().parent.parent
