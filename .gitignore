@@ -20,7 +20,6 @@ pip-wheel-metadata/
 # Virtual environments
 .venv/
 env/
-venv/
 ENV/
 
 # Installer logs

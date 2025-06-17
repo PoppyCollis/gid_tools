@@ -87,6 +87,8 @@ class LinearRewardModel(nn.Module):
 
 def main():
     
+    batch_size = 1
+    
     # Project root and checkpoint path setup
     ROOT_DIR = Path(__file__).resolve().parents[2]
     CHECKPOINT_DIR = ROOT_DIR / "checkpoints"
@@ -102,11 +104,17 @@ def main():
         subprocess.run([sys.executable, str(download_script)], check=True)
     
     reward_model = LinearRewardModel(unet_ckpt_path=CKPT_PATH)
-    t = torch.zeros(1, dtype=torch.long, device=x.device)
+    t = torch.zeros(batch_size, dtype=torch.long, device=x.device)
     # for now lets get an example x from the outputs file
     x = ...
     rewards = reward_model(x, t)
     
     
 if __name__ == "__main__":
+    
+    # can I load in the non-reduced dataset model weights? Are the unets the same dimensionality? 
+    # in which case I should probably use this one...
+    
+    
     main()
+    
