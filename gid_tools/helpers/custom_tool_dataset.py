@@ -1,8 +1,10 @@
 import numpy as np
-from torch.utils.data import Dataset
+from pathlib import Path
+from torch.utils.data import Dataset, DataLoader
 import json
 import torchvision.transforms as transforms
 from gid_tools.helpers.plots import make_bracket_image, render_T_image, render_V_image
+
 
 class DiffusionToolDataset(Dataset):
     def __init__(self, jsonl_path):
@@ -27,3 +29,12 @@ class DiffusionToolDataset(Dataset):
         else:
             pil = make_bracket_image(L, T, A, phi, fill=fill)
         return self.transform(pil)
+    
+    
+# Create loader
+root_dir = Path(__file__).resolve().parent.parent
+print(root_dir)
+jsonl_path     = f'{root_dir}' + '/datasets/tools_dataset_classes_reduced.jsonl'
+dataset        = DiffusionToolDataset(jsonl_path)
+train_loader   = DataLoader(dataset, batch_size=64, shuffle=True,
+                            num_workers=4, pin_memory=True)

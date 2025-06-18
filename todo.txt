@@ -1,0 +1,24 @@
+
+
+go through each script in the pipeline and check logic and inspect representations at each layer.
+
+1. generator - done
+2. evauate - done
+3. feature_extraction - done
+ a. Linear reward model
+ b. reward MLP
+
+
+fine tune shape of reward MLP
+check representation size in hooked unet representation
+Is global average pooling method correct (collapsed onto 256 dims)
+
+
+Can I plug in nonreduced diffusion model weights? flexibly change?
+
+Can we get the oracle working even if we dont plug it in? 
+Do we need a custom resnet to autoencode features?
+I think I need a reduced MLP - why do they upsample in SEIKO? from 768 to 1024?
+
+RL fine-tuning with PPO. 
+Can we use the reward model to actually fine tune?

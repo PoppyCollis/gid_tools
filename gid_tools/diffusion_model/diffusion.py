@@ -44,7 +44,7 @@ class DiffusionModel:
         """
         Algorithm 2 in Denoising Diffusion Probabilistic Models
         """
-
+        print("Sampling from diffusion model...")
         x = torch.randn((n_samples, image_channels, img_size[0], img_size[1]),
                     device=self.device)
         progress_bar = tqdm if use_tqdm else lambda x: x
