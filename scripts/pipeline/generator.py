@@ -25,7 +25,7 @@ logger.addHandler(console_handler)
 
 def main():
     
-    B = 5 # batch size 
+    B = 50 # batch size 
 
     # Project root and checkpoint path setup
     ROOT_DIR = Path(__file__).resolve().parents[2]

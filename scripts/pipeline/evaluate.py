@@ -28,33 +28,16 @@ def main():
     rewards = [env.compute(img, method='pixel_area') for img in batch]
     #logger.info(f"Pixel-area rewards: {rewards}")
     
+    # Build filename→reward mapping using the index as the “filename”
+    rewards_dict = {
+        str(i): float(r)
+        for i, r in enumerate(rewards)
+    }
+    
     # rewards is a dict[str, float]
-    output_path = script_dir / "rewards.json"
+    output_path = Path(__file__).resolve().parent / "rewards.json"
     with open(output_path, "w") as f:
-        json.dump(rewards, f, indent=2)
-
-
-    # script_dir = Path(__file__).resolve().parent
-    # samples_dir = script_dir / "samples"
-    # output_path = script_dir / "rewards.json"
-
-    # # Initialize reward environment
-    # env = ToolRewardEnv(default_method=None)
-    # env.register_reward('pixel_area', pixel_area_tensor)
-
-    # # Evaluate rewards
-    # rewards = {}
-    # for fname in sorted(samples_dir.glob("sample_*.png")):
-    #     img_tensor = load_image_as_tensor(fname)
-    #     reward = env.compute(img_tensor, method='pixel_area')
-    #     rewards[fname.name] = reward
-    #     #print(f"{fname.name}: {reward}")
-
-    # # Save to JSON
-    # with open(output_path, "w") as f:
-    #     json.dump(rewards, f, indent=2)
-    # print(f"Saved rewards to {output_path}")
-
+        json.dump(rewards_dict, f, indent=2)
 
 if __name__ == "__main__":
     main()

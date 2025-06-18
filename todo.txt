@@ -1,12 +1,46 @@
-
-
 go through each script in the pipeline and check logic and inspect representations at each layer.
 
 1. generator - done
 2. evauate - done
-3. feature_extraction - done
- a. Linear reward model
+3. feature_extraction
+check pooling makes sense / drop GAP and fit parameters of GFP network
+ a. Linear reward model 
+ do I seprate feature extraction and not do the unet hook here? yes probably.
  b. reward MLP
+ optimise the architecture size etc -- whats best for training? what do they do in the molecule dataset?
+
+
+Leave it so that the main thing that i play around with will be...
+- type of embedding (either pretrained autoencoder, unet features)
+- reward MLP architecture
+everything else should basically be standardised.
+
+1. check input dimension as pooling right now...
+2. tidy up because need to take out linear reward model but still have some kind ofn unet hook -- I want this separate though
+3. is there a way of plugging keyword args into a config file so that when i run_pipeline, I dont have to individually go into generator script
+and change the batch_size (for example)
+4. can I just do a linear reward model straight on the 256 datapoints. ridge regression
+5. should I normalise the output of the pixel area to be between 0 and 1 ??
+
+
+
+
+
+
+
+notes:
+
+molecule datasets 
+It’s important to note that this experiment is conducted on a simplified scale, as we
+utilize a trained oracle instead of a real black box oracle for evaluation.
+each datapoint = one-hot encoding representation with dimension 237 × 20 We selected the top 33637 samples following Trabucco et al. (2022) and trained diffusion models and
+oracles using this selected data.
+
+4740 -> 
+
+whats my output dimension?  1 256 4 4 = 4096 Can I just follow the GFP architectural dimensions?
+237 one-hot vectors corresponding to which amino acid is
+present in that location in the protein
 
 
 fine tune shape of reward MLP

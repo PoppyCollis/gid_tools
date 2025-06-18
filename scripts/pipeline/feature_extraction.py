@@ -59,8 +59,11 @@ def main():
         with torch.no_grad():
             # Forward through U-Net to hook mid-block features
             _ = model.unet(x, t)
+            
             mid_feats = model._mid_feats             # [1, C_mid, H_mid, W_mid]
-
+            
+            assert model._mid_feats is not None, "Mid-block hook never fired!"
+                
             # Global average pool and L2-normalize
             pooled      = mid_feats.mean(dim=(2, 3)) # [1, C_mid]
             pooled_norm = pooled / (pooled.norm(dim=1, keepdim=True) + 1e-6)

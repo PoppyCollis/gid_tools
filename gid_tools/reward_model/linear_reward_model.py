@@ -71,7 +71,7 @@ class LinearRewardModel(nn.Module):
         """
         # 1) run U-Net; hook populates self._mid_feats
         _ = self.unet(x, t)
-        
+    
         # 2) take the features we captured
         feats = self._mid_feats                  # [B, 256, 4, 4]
         
@@ -83,38 +83,3 @@ class LinearRewardModel(nn.Module):
         
         # 5) MLP → scalar reward
         return self.reward_head(pooled)
-
-
-def main():
-    
-    batch_size = 1
-    
-    # Project root and checkpoint path setup
-    ROOT_DIR = Path(__file__).resolve().parents[2]
-    CHECKPOINT_DIR = ROOT_DIR / "checkpoints"
-    CKPT_FILE = "diffusion_ckpt.pth"
-    CKPT_PATH = CHECKPOINT_DIR / CKPT_FILE
-
-    # If checkpoint is missing, download using download_model_weights.py
-    if not CKPT_PATH.exists():
-        print(f"Checkpoint not found at {CKPT_PATH}. Downloading...")
-        download_script = ROOT_DIR / "scripts" / "download_model_weights.py"
-        if not download_script.exists():
-            raise FileNotFoundError(f"Download script not found: {download_script}")
-        subprocess.run([sys.executable, str(download_script)], check=True)
-    
-    reward_model = LinearRewardModel(unet_ckpt_path=CKPT_PATH)
-    t = torch.zeros(batch_size, dtype=torch.long, device=x.device)
-    # for now lets get an example x from the outputs file
-    x = ...
-    rewards = reward_model(x, t)
-    
-    
-if __name__ == "__main__":
-    
-    # can I load in the non-reduced dataset model weights? Are the unets the same dimensionality? 
-    # in which case I should probably use this one...
-    
-    
-    main()
-    

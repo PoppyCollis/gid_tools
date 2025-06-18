@@ -15,11 +15,13 @@ from torch.optim import Adam
 from gid_tools.helpers.utils import build_reward_dataset
 from gid_tools.reward_model.reward_mlp import RewardMLP
 
+
 def main():
     base_dir = Path(__file__).resolve().parent
+    root_dir = Path(__file__).resolve().parents[2]
     features_dir = base_dir / "features"
     rewards_file = base_dir / "rewards.json"
-    output_model = base_dir / "reward_mlp.pth"
+    output_model = root_dir / "checkpoints" / "reward_mlp.pth"
 
     # Build the reward dataset
     try:
@@ -35,7 +37,9 @@ def main():
     input_dim = dataset.tensors[0].shape[1]
     model = RewardMLP(input_dim=input_dim).to(device)
     criterion = MSELoss()
-    optimizer = Adam(model.parameters(), lr=1e-3)
+    # optimizer = Adam(model.parameters(), lr=1e-3)
+    optimizer = Adam(model.parameters(), lr=0.1)
+
 
     # Training loop
     num_epochs = 10
@@ -44,7 +48,7 @@ def main():
         total_loss = 0.0
         for batch_x, batch_y in loader:
             batch_x, batch_y = batch_x.to(device), batch_y.to(device)
-            preds = model(batch_x).squeeze()
+            preds = model(batch_x)
             loss = criterion(preds, batch_y)
 
             optimizer.zero_grad()
@@ -59,7 +63,7 @@ def main():
     # Final evaluation
     model.eval()
     with torch.no_grad():
-        all_preds = model(dataset.tensors[0].to(device)).squeeze()
+        all_preds = model(dataset.tensors[0].to(device))
         final_mse = criterion(all_preds, dataset.tensors[1].to(device)).item()
     print(f"Final training MSE: {final_mse:.4f}")
 

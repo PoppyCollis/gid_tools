@@ -97,9 +97,13 @@ def build_reward_dataset(
     Load extracted feature files from a directory and corresponding rewards,
     returning a TensorDataset.
 
+    Rewards file should be a JSON dict mapping string indices ("0", "1", ...) to scalar rewards.
+    Feature files in features_dir should be sorted so that their order corresponds to these indices.
+    Feature files may contain tensors directly or be dicts containing tensors under key 'features'.
+
     Args:
-        features_dir (Path): Directory containing .npz files named like sample_{idx}_features.npz
-        rewards_path (Path): Path to the .json file mapping sample filenames to scalar rewards.
+        features_dir (Path): Directory containing .pt files, e.g. sample_0_features.pt, sample_1_features.pt, ...
+        rewards_path (Path): Path to the .json file mapping "0"->reward0, "1"->reward1, etc.
 
     Returns:
         TensorDataset: A dataset of (features, reward) pairs as torch tensors.
@@ -112,49 +116,54 @@ def build_reward_dataset(
     if not rewards_path.is_file():
         raise FileNotFoundError(f"Rewards file not found: {rewards_path}")
 
-    # Load rewards mapping
+    # Load rewards mapping: keys are string indices
     with open(rewards_path, "r") as f:
         rewards_dict = json.load(f)
 
     # Collect feature files
-    feature_files = sorted(p for p in features_dir.glob("*.npz") if p.is_file())
+    feature_files = sorted([p for p in features_dir.glob("*.pt") if p.is_file()])
     if not feature_files:
-        raise FileNotFoundError(f"No .npz feature files found in {features_dir}")
+        raise FileNotFoundError(f"No .pt feature files found in {features_dir}")
+    if len(feature_files) != len(rewards_dict):
+        raise ValueError(
+            f"Number of feature files ({len(feature_files)}) does not match number of rewards ({len(rewards_dict)})"
+        )
 
     features_list = []
     rewards_list = []
 
-    for feat_file in feature_files:
-        # e.g., 'sample_0_features.npz' -> sample key 'sample_0.png'
-        stem = feat_file.stem
-        sample_key = stem.rsplit('_', 1)[0] + '.png'
+    for idx, feat_file in enumerate(feature_files):
+        key = str(idx)
+        if key not in rewards_dict:
+            raise KeyError(f"Missing reward for index {key}")
 
-        if sample_key not in rewards_dict:
-            raise KeyError(f"Missing reward for {sample_key} (from {feat_file.name})")
-
-        # Load the numpy archive
+        # Load object from file
         try:
-            data = np.load(feat_file)
+            data = torch.load(feat_file)
         except Exception as e:
             raise IOError(f"Error loading {feat_file}: {e}")
 
-        # Extract array: if .npz, take the first array in the archive
-        if isinstance(data, np.lib.npyio.NpzFile):
-            if not data.files:
-                raise ValueError(f"No arrays found in {feat_file}")
-            arr = data[data.files[0]]
-        else:
+        # Extract tensor
+        if torch.is_tensor(data):
             arr = data
+        elif isinstance(data, dict):
+            # Prefer 'features' key
+            if 'features' in data and torch.is_tensor(data['features']):
+                arr = data['features']
+            else:
+                # Fallback: first tensor value
+                tensor_vals = [v for v in data.values() if torch.is_tensor(v)]
+                if not tensor_vals:
+                    raise ValueError(f"No tensor found in dict from {feat_file}")
+                arr = tensor_vals[0]
+        else:
+            raise ValueError(f"Unsupported data type in {feat_file}: {type(data)}")
 
-        features_list.append(arr.astype(np.float32))
-        rewards_list.append(float(rewards_dict[sample_key]))
+        features_list.append(arr.float())
+        rewards_list.append(float(rewards_dict[key]))
 
-    # Stack into arrays
-    features = np.stack(features_list, axis=0)
-    rewards = np.array(rewards_list, dtype=np.float32)
-
-    # Convert to torch tensors
-    X = torch.from_numpy(features)
-    y = torch.from_numpy(rewards)
+    # Stack into tensors
+    X = torch.stack(features_list, dim=0)  # shape [N, D]
+    y = torch.tensor(rewards_list, dtype=torch.float32)  # shape [N]
 
     return TensorDataset(X, y)
