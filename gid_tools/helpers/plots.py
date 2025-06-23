@@ -144,3 +144,54 @@ def make_bracket_image(lengths, thicknesses, angles, global_rot,
     # blur + downsample
     im = im.filter(ImageFilter.GaussianBlur(radius=blur_radius))
     return im.resize((canvas_size,canvas_size), Image.LANCZOS)
+
+
+import matplotlib.pyplot as plt
+
+def plot_reward_mlp_training_loss(
+    avg_losses,
+    std_losses,
+    title='Training Loss',
+    xlabel='Epoch',
+    ylabel='Loss',
+    grid=True,
+    save_path=None
+):
+    """
+    Plot the average training loss over epochs with standard deviation shading.
+
+    Parameters:
+    -----------
+    avg_losses : list or array-like
+        Sequence of average loss values per epoch.
+    std_losses : list or array-like
+        Sequence of standard deviation of loss per epoch.
+    title : str, optional
+        Title of the plot.
+    xlabel : str, optional
+        Label for the x-axis.
+    ylabel : str, optional
+        Label for the y-axis.
+    grid : bool, optional
+        If True, displays a grid on the plot.
+    save_path : str or None, optional
+        If provided, saves the figure to this file path.
+    """
+    epochs = range(1, len(avg_losses) + 1)
+
+    fig, ax = plt.subplots()
+    ax.plot(epochs, avg_losses, label='Avg Loss')
+    lower = [a - s for a, s in zip(avg_losses, std_losses)]
+    upper = [a + s for a, s in zip(avg_losses, std_losses)]
+    ax.fill_between(epochs, lower, upper, alpha=0.3, label='Std Dev')
+
+    ax.set_title(title)
+    ax.set_xlabel(xlabel)
+    ax.set_ylabel(ylabel)
+    if grid:
+        ax.grid(True)
+    ax.legend()
+    if save_path:
+        fig.savefig(save_path)
+    plt.show()
+

@@ -16,8 +16,13 @@ def pixel_area_tensor(img: torch.Tensor, threshold: float = 0.0) -> int:
     if img.dim() == 3:
         img = img.squeeze(0)
     mask = img > threshold
-    return int(mask.sum().item())
-
+    
+    reward = int(mask.sum().item())
+    
+    # normalise by dividing by number of pixels
+    reward = reward / (img.shape[0] * img.shape[1])
+    
+    return reward 
 
 class ToolRewardEnv:
     """

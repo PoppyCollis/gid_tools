@@ -9,24 +9,25 @@ check pooling makes sense / drop GAP and fit parameters of GFP network
  b. reward MLP
  optimise the architecture size etc -- whats best for training? what do they do in the molecule dataset?
 
-
-Leave it so that the main thing that i play around with will be...
-- type of embedding (either pretrained autoencoder, unet features)
-- reward MLP architecture
-everything else should basically be standardised.
+Why are the training loss curves so variable? why batch 32
 
 1. check input dimension as pooling right now...
 2. tidy up because need to take out linear reward model but still have some kind ofn unet hook -- I want this separate though
 3. is there a way of plugging keyword args into a config file so that when i run_pipeline, I dont have to individually go into generator script
 and change the batch_size (for example)
 4. can I just do a linear reward model straight on the 256 datapoints. ridge regression
-5. should I normalise the output of the pixel area to be between 0 and 1 ??
+5. should I normalise the output of the pixel area to be between 0 and 1 ?? yes
+
+Leave it so that the main thing that i play around with will be...
+- type of embedding (either pretrained autoencoder, unet features)
+- reward MLP architecture
+everything else should basically be standardised.
+
+The first hurdle is.. look at the error curves of the reward model with a fixed feedback budget. Should be within the 100s.
 
 
 
-
-
-
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 notes:
 
