@@ -1,4 +1,3 @@
-# run_pipeline.py
 """
 Master script to execute the full reward-model pipeline:
 1. generator.py        → generates samples

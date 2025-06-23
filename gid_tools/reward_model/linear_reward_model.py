@@ -3,28 +3,9 @@ import torch.nn as nn
 from gid_tools.diffusion_model.unet import UNet
 from gid_tools.reward_model.reward_mlp import RewardMLP
 
-import sys
-import subprocess
-from pathlib import Path
-
-"""
-Try instead ...
-
-Another option would just be to train a resnet on my dataset and ensure that I get good embeddings
-for downstream predictions rather than these potentially strange denoising embeddings.
-
-from gid_tools.models.cnn import tool_cnn
-
-encoder = tool_cnn(pretrained=True)
-encoder = nn.Sequential(*list(encoder.children())[:-2]) 
-# now encoder(x) → [B, 512, H’, W’]
-
-# then hook its last conv output (or just call encoder(x) directly)
-feats = encoder(x)  # [B, 512, h, w]
-pooled = feats.mean(dim=(2,3))  # [B, 512]
-# ... then L2-norm + MLP
-"""
-
+#import sys
+#import subprocess
+#from pathlib import Path
 
 class LinearRewardModel(nn.Module):
     def __init__(self, unet_ckpt_path=None, ch=128, in_ch=1, device=None):

@@ -1,6 +1,7 @@
 import argparse
 from pathlib import Path
 import configparser
+
 import numpy as np
 import torch
 from torch.utils.data import DataLoader
@@ -8,8 +9,9 @@ from torch.nn import MSELoss
 from torch.optim import Adam
 
 from gid_tools.helpers.utils import build_reward_dataset
-from gid_tools.reward_model.reward_mlp import RewardMLP
 from gid_tools.helpers.plots import plot_reward_mlp_training_loss
+from gid_tools.reward_model.reward_mlp import RewardMLP
+
 
 def main():
     # Determine default config path (same directory as this script)
@@ -101,3 +103,6 @@ def main():
 
 if __name__ == "__main__":
     main()
+    
+    
+    
