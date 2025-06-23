@@ -1,3 +1,8 @@
+#!/usr/bin/env python
+"""
+Step 1. Load in the diffusion model, generate images and save them to output folder
+"""
+
 import torch
 import argparse
 import configparser
@@ -5,7 +10,7 @@ from pathlib import Path
 
 from gid_tools.diffusion_model.unet import UNet
 from gid_tools.diffusion_model.diffusion import DiffusionModel
-from gid_tools.helpers.utils import save_samples, download_checkpoint
+from gid_tools.helpers.utils import save_samples, download_checkpoint, load_config
 
 import logging
 logger = logging.getLogger(__name__)
@@ -18,49 +23,44 @@ logger.addHandler(console_handler)
 
 
 def main():
-    # Default config path: same directory as this script
-    default_cfg = Path(__file__).resolve().parent / 'config.ini'
-
-    p = argparse.ArgumentParser(
+    # Parse command-line args
+    default_cfg = Path(__file__).resolve().parent / "config.ini"
+    parser = argparse.ArgumentParser(
         description="Generate samples using the diffusion model."
     )
-    p.add_argument(
-        '--config',
+    parser.add_argument(
+        "--config",
         type=Path,
         default=default_cfg,
-        help=f"Path to config.ini (default: {default_cfg})"
+        help=f"Path to config file (default: {default_cfg.name})"
     )
-    args = p.parse_args()
+    args = parser.parse_args()
 
-    # Read configuration
-    cfg = configparser.ConfigParser()
-    cfg.read(args.config)
+    # Load and parse config
+    cfg = load_config(args.config)  # returns a ConfigParser already .read() for you
+    gen_cfg = cfg["generator"]
+    batch_size = gen_cfg.getint("batch_size")
 
-    batch_size = cfg.getint('generator', 'batch_size')
+    # Ensure checkpoint is present
+    project_root = Path(__file__).resolve().parents[2]
+    ckpt_path = download_checkpoint(project_root)
 
-    # Project root and checkpoint path setup
-    ROOT_DIR = Path(__file__).resolve().parents[2]
-    CKPT_PATH = download_checkpoint(ROOT_DIR)
-
-    # Script directory for output
-    CUR_DIR = Path(__file__).resolve().parent
-
-    # Device selection
+    # Setup device
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     logger.info(f"Using device: {device}")
 
-    # Initialize UNet and diffusion
+    # Initialize model + diffusion process
     model = UNet(ch=128, in_ch=1).to(device)
     diffusion = DiffusionModel(T=1000, model=model, device=device)
 
-    # Load pretrained weights
-    ckpt = torch.load(str(CKPT_PATH), map_location=device)
-    state_dict = ckpt.get('model_state_dict', ckpt) if isinstance(ckpt, dict) else ckpt
+    # Load weights
+    ckpt = torch.load(str(ckpt_path), map_location=device)
+    state_dict = ckpt.get("model_state_dict", ckpt) if isinstance(ckpt, dict) else ckpt
     model.load_state_dict(state_dict)
     model.eval()
     logger.info("Loaded pretrained weights into UNet.")
 
-    # Generate samples
+    # Sample
     samples = diffusion.sampling(
         n_samples=batch_size,
         image_channels=1,
@@ -68,14 +68,16 @@ def main():
         use_tqdm=True
     )
 
-    # Save images as PNG
-    OUTPUT_DIR = CUR_DIR / "samples"
-    OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
-    save_samples(samples, OUTPUT_DIR, prefix="sample")
-    logger.info("Saved generated images as PNG files.")
+    # Save outputs
+    out_dir = Path(__file__).resolve().parent / "samples"
+    out_dir.mkdir(parents=True, exist_ok=True)
 
-    # Save raw tensor batch
-    tensor_path = OUTPUT_DIR / "samples.pt"
+    # 1) PNGs
+    save_samples(samples, out_dir, prefix="sample")
+    logger.info(f"Saved {batch_size} PNG samples to {out_dir}")
+
+    # 2) Raw tensor batch
+    tensor_path = out_dir / "samples.pt"
     torch.save(samples.cpu(), tensor_path)
     logger.info(f"Saved raw tensor batch to {tensor_path}")
 

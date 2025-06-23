@@ -12,7 +12,8 @@ import subprocess
 import sys
 import json
 from torch.utils.data import TensorDataset
-
+import configparser
+from pathlib import Path
 
 def save_samples(
     samples, 
@@ -167,3 +168,23 @@ def build_reward_dataset(
     y = torch.tensor(rewards_list, dtype=torch.float32)  # shape [N]
 
     return TensorDataset(X, y)
+
+def load_config(config_filename="config.ini"):
+    """
+    Loads a configuration file from the pipeline directory.
+
+    Parameters
+    ----------
+    config_filename : str
+        Name of the config file to load (e.g. 'config.ini' or 'config_ground_truth.ini').
+
+    Returns
+    -------
+    configparser.ConfigParser
+        The loaded configuration object.
+    """
+    pipeline_dir = Path(__file__).resolve().parents[2] / "scripts" / "pipeline"
+    config_path = pipeline_dir / config_filename
+    config = configparser.ConfigParser()
+    config.read(config_path)
+    return config
