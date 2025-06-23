@@ -59,6 +59,8 @@ ehthumbs.db
 
 # Ignore generated outputs
 outputs/
+scripts/pipeline/samples/
+scripts/pipeline/features/
 
 checkpoints/
 

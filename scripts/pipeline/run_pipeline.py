@@ -12,9 +12,9 @@ import sys
 from pathlib import Path
 
 
-def run_script(script_path: Path):
+def run_script(script_path: Path, config_path: Path):
     print(f"\n>>> Running {script_path.name}...")
-    result = subprocess.run([sys.executable, str(script_path)], check=True)
+    result = subprocess.run([sys.executable,str(script_path),"--config", str(config_path),],check=True)
     if result.returncode != 0:
         print(f"Script {script_path.name} failed with exit code {result.returncode}")
         sys.exit(result.returncode)
@@ -22,6 +22,8 @@ def run_script(script_path: Path):
 def main():
     project_root = Path(__file__).resolve().parent.parent.parent
     pipeline_dir = project_root / "scripts" / "pipeline"
+    config_path  = pipeline_dir / 'config.ini'
+
 
     # Ordered list of pipeline steps
     steps = [
@@ -35,7 +37,7 @@ def main():
         if not script.exists():
             print(f"Error: pipeline script not found: {script}")
             sys.exit(1)
-        run_script(script)
+        run_script(script, config_path)
 
     print("\n All pipeline steps completed successfully.")
 

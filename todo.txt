@@ -26,7 +26,6 @@ everything else should basically be standardised.
 The first hurdle is.. look at the error curves of the reward model with a fixed feedback budget. Should be within the 100s.
 
 
-
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 notes:

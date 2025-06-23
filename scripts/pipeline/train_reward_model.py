@@ -1,11 +1,6 @@
-"""
-Step 4. Train reward model given dataset D = {ϕ(x), y}
-"""
-# scripts/pipeline/train_reward_model.py
-
-# scripts/pipeline/train_reward_model.py
-import json
+import argparse
 from pathlib import Path
+import configparser
 import numpy as np
 import torch
 from torch.utils.data import DataLoader
@@ -17,8 +12,31 @@ from gid_tools.reward_model.reward_mlp import RewardMLP
 from gid_tools.helpers.plots import plot_reward_mlp_training_loss
 
 def main():
+    # Determine default config path (same directory as this script)
+    default_cfg = Path(__file__).resolve().parent / 'config.ini'
+
+    p = argparse.ArgumentParser(
+        description="Train a reward model based on features and rewards data."
+    )
+    p.add_argument(
+        '--config',
+        type=Path,
+        default=default_cfg,
+        help=f"Path to config.ini (default: {default_cfg})"
+    )
+    args = p.parse_args()
+
+    # Read configuration
+    cfg = configparser.ConfigParser()
+    cfg.read(args.config)
+
+    num_epochs = cfg.getint('train_reward_model', 'num_epochs')
+    batch_size = cfg.getint('train_reward_model', 'batch_size')
+    lr = cfg.getfloat('train_reward_model', 'lr')
+
+    # Directory setup
     base_dir = Path(__file__).resolve().parent
-    root_dir = Path(__file__).resolve().parents[2]
+    root_dir = base_dir.parents[2]
     features_dir = base_dir / "features"
     rewards_file = base_dir / "rewards.json"
     output_model = root_dir / "checkpoints" / "reward_mlp.pth"
@@ -30,19 +48,18 @@ def main():
         print(f"Failed to build reward dataset: {e}")
         return
 
-    loader = DataLoader(dataset, batch_size=32, shuffle=True)
+    loader = DataLoader(dataset, batch_size=batch_size, shuffle=True)
 
     # Model setup
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     input_dim = dataset.tensors[0].shape[1]
     model = RewardMLP(input_dim=input_dim).to(device)
     criterion = MSELoss()
-    optimizer = Adam(model.parameters(), lr=1e-3)
+    optimizer = Adam(model.parameters(), lr=lr)
 
-    # record loss for plotting
+    # Training loop
     avg_losses = []
     std_losses = []
-    num_epochs = 10
 
     for epoch in range(1, num_epochs + 1):
         model.train()
@@ -57,33 +74,30 @@ def main():
             loss.backward()
             optimizer.step()
 
-            batch_loss = loss.item()
-            batch_losses.append(batch_loss)
+            batch_losses.append(loss.item())
 
-        # now compute epoch statistics
+        # Epoch statistics
         avg_loss = np.mean(batch_losses)
         std_loss = np.std(batch_losses)
-
         avg_losses.append(avg_loss)
         std_losses.append(std_loss)
 
-        print(f"Epoch {epoch}/{num_epochs} - "
-            f"Mean MSE: {avg_loss:.4f} ± {std_loss:.4f}")
+        print(f"Epoch {epoch}/{num_epochs} - Mean MSE: {avg_loss:.4f} ± {std_loss:.4f}")
 
-    # plots
+    # Plot training loss
     plot_reward_mlp_training_loss(avg_losses, std_losses)
-    
-    # Final evaluation
+
+    # Final evaluation on entire set
     model.eval()
     with torch.no_grad():
         all_preds = model(dataset.tensors[0].to(device))
         final_mse = criterion(all_preds, dataset.tensors[1].to(device)).item()
     print(f"Final training MSE: {final_mse:.4f}")
 
-    # Save model weights
+    # Save model
+    output_model.parent.mkdir(parents=True, exist_ok=True)
     torch.save(model.state_dict(), output_model)
     print(f"Saved trained model to {output_model}")
-
 
 if __name__ == "__main__":
     main()
