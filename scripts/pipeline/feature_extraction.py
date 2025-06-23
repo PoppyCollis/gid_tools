@@ -91,6 +91,9 @@ def main():
         }
         out_path = features_dir / f"sample_{idx}_features.pt"
         torch.save(out, out_path)
+        
+        if idx % 1000 == 0:
+            logger.debug(f"Saved features+reward → {out_path}")
 
     logger.info("All features extracted and saved.")
 

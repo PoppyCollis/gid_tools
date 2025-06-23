@@ -46,7 +46,7 @@ def main():
             sys.exit(1)
         run_script(step, config_path)
 
-    print("\n✅ All ground-truth pipeline steps completed successfully.")
+    print("\n All ground-truth pipeline steps completed successfully.")
 
 if __name__ == "__main__":
     main()

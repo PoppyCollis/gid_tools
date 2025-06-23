@@ -70,7 +70,8 @@ def main():
     for idx, img in enumerate(batch):
         r = env.compute(img, method=method, threshold=threshold)
         rewards.append(float(r))
-        logger.debug(f"Sample {idx}: {method} → {r}")
+        if idx % 1000 == 0:
+            logger.debug(f"Sample {idx}: {method} → {r}")
 
     # Map indices → rewards
     rewards_dict = {str(i): r for i, r in enumerate(rewards)}

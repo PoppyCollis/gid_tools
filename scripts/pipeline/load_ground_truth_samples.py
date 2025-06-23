@@ -5,7 +5,7 @@ Load ground truth tool dataset from JSONL and save as a raw torch tensor batch.
 import os
 from pathlib import Path
 import torch
-from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader, random_split
 from tqdm import tqdm
 
 from gid_tools.helpers.custom_tool_dataset import DiffusionToolDataset
@@ -24,10 +24,18 @@ def main():
         print(f"Found existing tensor batch at {tensor_path}, skipping generation.")
         return
 
+    fraction_of_dataset = 0.1
     # Load dataset
     dataset = DiffusionToolDataset(str(DATASET_PATH))
-    dataloader = DataLoader(dataset, batch_size=64, shuffle=False)
+    
+    
 
+    N = len(dataset)
+    k = int(N * fraction_of_dataset)
+    small_ds, _ = random_split(dataset, [k, N - k], generator=torch.Generator().manual_seed(42))
+
+    dataloader = DataLoader(small_ds, batch_size=64, shuffle=False)
+    
     print("Loaded ground-truth dataset.")
 
     # Collect all batches

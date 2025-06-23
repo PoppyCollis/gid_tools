@@ -64,7 +64,6 @@ scripts/pipeline/features/
 scripts/pipeline/features_ground_truth/
 scripts/pipeline/ground_truth_samples/
 
-
 checkpoints/
 
 
