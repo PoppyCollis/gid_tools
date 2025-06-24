@@ -5,7 +5,6 @@ Step 1. Load in the diffusion model, generate images and save them to output fol
 
 import torch
 import argparse
-import configparser
 from pathlib import Path
 
 from gid_tools.diffusion_model.unet import UNet
