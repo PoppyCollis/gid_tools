@@ -77,7 +77,7 @@ class UnetFeatureExtractor(BaseFeatureExtractor):
         normed = pooled / (pooled.norm(dim=1, keepdim=True) + 1e-6)
         return normed
 
-
+    
 # Alternative extractor
 class AutoencoderFeatureExtractor(BaseFeatureExtractor):
     """

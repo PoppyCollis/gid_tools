@@ -77,7 +77,7 @@ def main():
     logger.info(f"Saved {batch_size} PNG samples to {out_dir}")
 
     # 2) Raw tensor batch
-    tensor_path = out_dir / "samples.pt"
+    tensor_path = out_dir / "train_samples.pt"
     torch.save(samples.cpu(), tensor_path)
     logger.info(f"Saved raw tensor batch to {tensor_path}")
 

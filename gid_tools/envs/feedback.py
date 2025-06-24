@@ -20,7 +20,7 @@ def pixel_area_tensor(img: torch.Tensor, threshold: float = 0.0) -> int:
     reward = int(mask.sum().item())
     
     # normalise by dividing by number of pixels
-    reward = reward / (img.shape[0] * img.shape[1])
+    reward = np.exp(reward / (img.shape[0] * img.shape[1]))
     
     return reward 
 

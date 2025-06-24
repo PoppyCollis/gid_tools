@@ -50,28 +50,36 @@ def main():
 
     # paths
     pipeline_dir  = Path(__file__).resolve().parent
-    features_dir  = pipeline_dir / cfg["features"]["directory"]
-    rewards_file  = pipeline_dir / cfg["rewards"]["file"]
-    root_dir      = pipeline_dir.parents[2]
-    output_model  = root_dir / "checkpoints" / "reward_mlp.pth"
-    output_model.parent.mkdir(parents=True, exist_ok=True)
-
-    logger.info(f"Features dir: {features_dir}")
-    logger.info(f"Rewards file: {rewards_file}")
-    logger.info(f"Output model path: {output_model}")
-
-    # build dataset
+    features_root  = pipeline_dir / cfg["features"]["directory"]
+    
+    # splits under features/
+    features_train_dir = features_root / "train"
+    features_test_dir  = features_root / "test"
+    rewards_base       = cfg["rewards"]["file"]
+    rewards_train_path = pipeline_dir / f"train_{rewards_base}"
+    rewards_test_path  = pipeline_dir / f"test_{rewards_base}"
+    root_dir           = pipeline_dir.parents[2]
+    output_model_path  = root_dir / "checkpoints" / "reward_mlp.pth"
+    output_model_path.parent.mkdir(parents=True, exist_ok=True)
+    
+    # build datasets
     try:
-        dataset = build_reward_dataset(features_dir, rewards_file)
+        train_dataset = build_reward_dataset(features_train_dir, rewards_train_path)
     except Exception as e:
-        logger.error(f"Failed to build reward dataset: {e}")
+        logger.error(f"Failed to build train dataset: {e}")
         return
-
-    loader = DataLoader(dataset, batch_size=batch_size, shuffle=True)
-
+    try:
+        test_dataset = build_reward_dataset(features_test_dir, rewards_test_path)
+    except Exception as e:
+        logger.error(f"Failed to build test dataset: {e}")
+        return
+    
+    train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
+    device       = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    
     # model, criterion, optimizer
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    input_dim = dataset.tensors[0].shape[1]
+    input_dim = train_dataset.tensors[0].shape[1]
     model = RewardMLP(input_dim=input_dim).to(device)
     criterion = MSELoss()
     optimizer = Adam(model.parameters(), lr=lr)
@@ -82,7 +90,7 @@ def main():
     for epoch in range(1, num_epochs + 1):
         model.train()
         batch_losses = []
-        for batch_x, batch_y in loader:
+        for batch_x, batch_y in train_loader:
             batch_x, batch_y = batch_x.to(device), batch_y.to(device)
             preds = model(batch_x)
             loss = criterion(preds, batch_y)
@@ -92,26 +100,37 @@ def main():
             optimizer.step()
 
             batch_losses.append(loss.item())
-
+    
         avg = float(np.mean(batch_losses))
         std = float(np.std(batch_losses))
         avg_losses.append(avg)
         std_losses.append(std)
+        
         logger.info(f"Epoch {epoch}/{num_epochs} — Mean MSE: {avg:.4f} ± {std:.4f}")
+    
+    plot_reward_mlp_training_loss(batch_losses, np.zeros(len(batch_losses)))
 
     # plot training loss
     plot_reward_mlp_training_loss(avg_losses, std_losses)
-
+    
     # final evaluation
     model.eval()
     with torch.no_grad():
-        preds_all = model(dataset.tensors[0].to(device))
-        final_mse = criterion(preds_all, dataset.tensors[1].to(device)).item()
-    logger.info(f"Final training MSE: {final_mse:.4f}")
+        train_preds = model(train_dataset.tensors[0].to(device))
+        train_mse   = criterion(train_preds, train_dataset.tensors[1].to(device)).item()
+    logger.info(f"Final train MSE: {train_mse:.4f}")
 
-    # save model
-    torch.save(model.state_dict(), output_model)
-    logger.info(f"Saved trained model to {output_model}")
+    # 10) evaluation on test set
+    with torch.no_grad():
+        test_feats = test_dataset.tensors[0].to(device)
+        test_labels= test_dataset.tensors[1].to(device)
+        test_preds = model(test_feats)
+        test_mse   = criterion(test_preds, test_labels).item()
+    logger.info(f"Test MSE: {test_mse:.4f}")
+
+    # 11) save model
+    torch.save(model.state_dict(), output_model_path)
+    logger.info(f"Saved trained model to {output_model_path}")
 
 
 if __name__ == "__main__":

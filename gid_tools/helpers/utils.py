@@ -14,6 +14,7 @@ import json
 from torch.utils.data import TensorDataset
 import configparser
 from pathlib import Path
+from tqdm import tqdm
 
 def save_samples(
     samples, 
@@ -188,3 +189,13 @@ def load_config(config_filename="config.ini"):
     config = configparser.ConfigParser()
     config.read(config_path)
     return config
+
+def save_split(loader, out_path):
+        all_batches = []
+        for batch in tqdm(loader, desc=f"Collecting → {out_path.name}"):
+            all_batches.append(batch)
+        all_tensor = torch.cat(all_batches, dim=0)  # [k,1,32,32]
+        torch.save(all_tensor.cpu(), out_path)
+        print(f"  • Saved {all_tensor.shape[0]} samples to {out_path}")
+        
+        

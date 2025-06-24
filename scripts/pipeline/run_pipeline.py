@@ -42,7 +42,7 @@ def main():
             sys.exit(1)
         run_script(script, config_path)
 
-    print("\n✅ All pipeline steps completed successfully.")
+    print("\n All pipeline steps completed successfully.")
 
 if __name__ == "__main__":
     main()

@@ -50,7 +50,6 @@ def main():
     # Paths from config
     pipeline_dir = Path(__file__).resolve().parent
     sample_dir   = pipeline_dir / cfg["samples"]["directory"]
-    tensor_path  = sample_dir / cfg["samples"]["tensor_file"]
     features_dir = pipeline_dir / cfg["features"]["directory"]
     features_dir.mkdir(parents=True, exist_ok=True)
 
@@ -68,34 +67,49 @@ def main():
     head = RewardMLP(input_dim=2*128).to(device)
     model = RewardModel(feature_extractor=extractor, reward_head=head).to(device)
     model.eval()
+    
+        # -------------------------------------------------------------------------
+    # 6) Loop over splits
+    # -------------------------------------------------------------------------
+    sample_cfg = cfg["samples"]
+    for split in ["train", "test"]:
+        tensor_name = sample_cfg.get(f"{split}_tensor_file")
+        tensor_path = sample_dir / tensor_name
 
-    # Load samples tensor
-    if not tensor_path.exists():
-        logger.error(f"Tensor file not found: {tensor_path}")
-        return
-    batch = torch.load(tensor_path, map_location=device)  # [B, C, H, W]
+        if not tensor_path.exists():
+            logger.error(f"{split.capitalize()} tensor file not found: {tensor_path}")
+            continue
 
-    # Dummy timestep for U-Net extractor API
-    t = torch.zeros((1,), dtype=torch.long, device=device)
+        batch = torch.load(tensor_path, map_location=device)  # [B, C, H, W]
+        logger.info(f"Processing '{split}' split: {batch.shape[0]} samples from {tensor_name}")
 
-    # Process each image
-    for idx, img in enumerate(batch):
-        x = img.unsqueeze(0).to(device)  # [1, C, H, W]
-        with torch.no_grad():
-            feats = extractor.extract(x, t=t)    # [1, D]
-            reward = head(feats).squeeze(-1)     # scalar
+        # split-specific output dir
+        split_feat_dir = features_dir / split
+        split_feat_dir.mkdir(parents=True, exist_ok=True)
 
-        out = {
-            "features": feats.squeeze(0).cpu(),
-            "reward":   reward.cpu(),
-        }
-        out_path = features_dir / f"sample_{idx}_features.pt"
-        torch.save(out, out_path)
-        
-        if idx % 1000 == 0:
-            logger.debug(f"Saved features+reward → {out_path}")
+        # Dummy timestep for extractor API
+        t = torch.zeros((1,), dtype=torch.long, device=device)
 
-    logger.info("All features extracted and saved.")
+        # Process each image
+        for idx, img in enumerate(batch):
+            x = img.unsqueeze(0).to(device)  # [1, C, H, W]
+            with torch.no_grad():
+                feats  = extractor.extract(x, t=t)    # [1, D]
+                reward = head(feats).squeeze(-1)     # scalar
+
+            out = {
+                "features": feats.squeeze(0).cpu(),
+                "reward":   reward.cpu(),
+            }
+            out_path = split_feat_dir / f"{split}_sample_{idx}_features.pt"
+            torch.save(out, out_path)
+
+            if idx % 1000 == 0:
+                logger.debug(f"[{split}] Saved features+reward → {out_path}")
+
+        logger.info(f"Finished extracting features for '{split}' split.")
+
+    logger.info("All splits processed and saved.")
 
 
 if __name__ == "__main__":

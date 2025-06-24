@@ -13,6 +13,37 @@ from gid_tools.envs.feedback import ToolRewardEnv, pixel_area_tensor
 from gid_tools.helpers.utils import load_config
 
 
+def process_split(split: str, samples_dir: Path, tensor_file: str,
+                  method: str, threshold: float, output_path: Path):
+    """
+    Load a tensor batch, compute rewards, and write to JSON.
+    """
+    tensor_path = samples_dir / tensor_file
+    if not tensor_path.exists():
+        logger.error(f"[{split}] Tensor file not found: {tensor_path}")
+        return
+
+    logger.info(f"[{split}] Loading tensor batch from {tensor_path}")
+    batch = torch.load(tensor_path)  # [B, C, H, W]
+
+    env = ToolRewardEnv(default_method=None)
+    env.register_reward("pixel_area", pixel_area_tensor)
+
+    rewards = []
+    for idx, img in enumerate(batch):
+        r = env.compute(img, method=method, threshold=threshold)
+        rewards.append(float(r))
+        if idx % 1000 == 0:
+            logger.debug(f"[{split}] Sample {idx}: {method} → {r}")
+
+    rewards_dict = {str(i): r for i, r in enumerate(rewards)}
+
+    # Write out
+    with open(output_path, "w") as f:
+        json.dump(rewards_dict, f, indent=2)
+    logger.info(f"[{split}] Wrote rewards to {output_path}")
+
+
 # === logger setup ===
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
@@ -42,45 +73,28 @@ def main():
 
     # Paths from [samples] and [rewards]
     pipeline_dir = Path(__file__).resolve().parent
-    samples_dir  = pipeline_dir / cfg["samples"]["directory"]
-    tensor_path  = samples_dir / cfg["samples"]["tensor_file"]
-
-    rewards_cfg  = cfg["rewards"]
-    output_path  = pipeline_dir / rewards_cfg.get("file", "rewards.json")
-
-    # Script-specific options
-    eval_cfg     = cfg["evaluate"]
-    method       = eval_cfg.get("method", "pixel_area")
-    threshold    = eval_cfg.getfloat("threshold", 0.0)
-
-    # Validate inputs
-    if not tensor_path.exists():
-        logger.error(f"No tensor file found at {tensor_path}")
-        raise FileNotFoundError(f"No tensor file found at {tensor_path}")
-
-    # Load batch: [B, C, H, W]
-    batch = torch.load(tensor_path)
-
-    # Setup reward environment
-    env = ToolRewardEnv(default_method=None)
-    env.register_reward("pixel_area", pixel_area_tensor)
-
-    # Compute rewards
-    rewards = []
-    for idx, img in enumerate(batch):
-        r = env.compute(img, method=method, threshold=threshold)
-        rewards.append(float(r))
-        if idx % 1000 == 0:
-            logger.debug(f"Sample {idx}: {method} → {r}")
-
-    # Map indices → rewards
-    rewards_dict = {str(i): r for i, r in enumerate(rewards)}
-
-    # Write out
-    with open(output_path, "w") as f:
-        json.dump(rewards_dict, f, indent=2)
-    logger.info(f"Wrote rewards to {output_path}")
-
+    
+    # Samples section
+    sample_cfg  = cfg["samples"]
+    samples_dir = pipeline_dir / sample_cfg["directory"]
+    train_tensor = sample_cfg["train_tensor_file"]
+    test_tensor  = sample_cfg["test_tensor_file"]
+    
+    # Evaluate options
+    eval_cfg   = cfg["evaluate"]
+    method     = eval_cfg.get("method", "pixel_area")
+    threshold  = eval_cfg.getfloat("threshold", 0.0)
+    
+    # Rewards section
+    rewards_cfg = cfg["rewards"]
+    base_name   = rewards_cfg.get("file", "rewards.json")
+    # derive per-split output names
+    train_out = pipeline_dir / f"train_{base_name}"
+    test_out  = pipeline_dir / f"test_{base_name}"
+    
+     # Process each split
+    process_split("train", samples_dir, train_tensor, method, threshold, train_out)
+    process_split("test",  samples_dir, test_tensor,  method, threshold, test_out)
 
 if __name__ == "__main__":
     main()
