@@ -170,25 +170,40 @@ def build_reward_dataset(
 
     return TensorDataset(X, y)
 
-def load_config(config_filename="config.ini"):
+import configparser
+from pathlib import Path
+from typing import Union
+
+def load_config(config_path: Union[str, Path] = "config.ini") -> configparser.ConfigParser:
     """
-    Loads a configuration file from the pipeline directory.
+    Load a config, either from an explicit path (if it exists) or by
+    falling back to scripts/pipeline/<config_path>.
 
     Parameters
     ----------
-    config_filename : str
-        Name of the config file to load (e.g. 'config.ini' or 'config_ground_truth.ini').
+    config_path : str or Path
+        Either an absolute/relative path to the .ini, or just a filename
+        to look for in scripts/pipeline/.
 
     Returns
     -------
     configparser.ConfigParser
-        The loaded configuration object.
     """
-    pipeline_dir = Path(__file__).resolve().parents[2] / "scripts" / "pipeline"
-    config_path = pipeline_dir / config_filename
-    config = configparser.ConfigParser()
-    config.read(config_path)
-    return config
+    cp = configparser.ConfigParser()
+    p = Path(config_path)
+
+    if p.is_file():
+        # User passed a valid path: load it directly
+        cp.read(p)
+    else:
+        # Fallback: look under scripts/pipeline/
+        pipeline_dir = Path(__file__).resolve().parents[2] / "scripts" / "pipeline"
+        alt = pipeline_dir / p
+        if not alt.is_file():
+            raise FileNotFoundError(f"Config file not found at {p} or at {alt}")
+        cp.read(alt)
+
+    return cp
 
 def save_split(loader, out_path):
         all_batches = []
