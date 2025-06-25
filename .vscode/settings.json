@@ -1,0 +1,15 @@
+{
+  "files.exclude": {
+    // hide any egg-info folders
+    "**/*.egg-info/": true,
+    // hide the virtual-env folder and everything under it
+    "**/.venv/": true,
+    // hide all __pycache__ directories
+    "**/__pycache__/**": true
+  },
+  // (optional) if you also want to skip these in search results:
+  "search.exclude": {
+    "**/.venv/": true,
+    "**/__pycache__/**": true
+  }
+}
