@@ -1,12 +1,15 @@
-
-
 --extra-index-url https://download.pytorch.org/whl/cu118
-torch
-torchvision
 
-# Your other deps
+# Core dependencies
+torch==2.7.1+cu118
+torchvision==0.22.1+cu118
 numpy
 matplotlib
 Pillow
 tqdm
+gdown
+beautifulsoup4
+printdirtree
+sympy
+networkx
 

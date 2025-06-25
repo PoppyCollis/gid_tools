@@ -15,6 +15,7 @@ from torch.utils.data import TensorDataset
 import configparser
 from pathlib import Path
 from tqdm import tqdm
+import configparser
 
 def save_samples(
     samples, 
@@ -170,10 +171,6 @@ def build_reward_dataset(
 
     return TensorDataset(X, y)
 
-import configparser
-from pathlib import Path
-from typing import Union
-
 def load_config(config_path: Union[str, Path] = "config.ini") -> configparser.ConfigParser:
     """
     Load a config, either from an explicit path (if it exists) or by
@@ -206,11 +203,11 @@ def load_config(config_path: Union[str, Path] = "config.ini") -> configparser.Co
     return cp
 
 def save_split(loader, out_path):
-        all_batches = []
-        for batch in tqdm(loader, desc=f"Collecting → {out_path.name}"):
-            all_batches.append(batch)
-        all_tensor = torch.cat(all_batches, dim=0)  # [k,1,32,32]
-        torch.save(all_tensor.cpu(), out_path)
-        print(f"  • Saved {all_tensor.shape[0]} samples to {out_path}")
+    all_batches = []
+    for batch in tqdm(loader, desc=f"Collecting → {out_path.name}"):
+        all_batches.append(batch)
+    all_tensor = torch.cat(all_batches, dim=0)  # [k,1,32,32]
+    torch.save(all_tensor.cpu(), out_path)
+    print(f"  • Saved {all_tensor.shape[0]} samples to {out_path}")
         
         

@@ -38,9 +38,8 @@ class DiffusionModel:
         optimizer.step()
         return loss.item()
 
-    @torch.no_grad()
     def sampling(self, n_samples=1, image_channels=1, img_size=(32, 32),
-                use_tqdm=True):
+                use_tqdm=True, require_grad: bool = False):
         """
         Algorithm 2 in Denoising Diffusion Probabilistic Models
         """

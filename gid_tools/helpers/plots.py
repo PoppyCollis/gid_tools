@@ -195,3 +195,23 @@ def plot_reward_mlp_training_loss(
         fig.savefig(save_path)
     plt.show()
 
+def plot_tuning_stats(K, avg_true_r, std_true_r, avg_pred_r, std_pred_r):
+    
+    its = list(range(1, K+1))
+    plt.figure(figsize=(8,4))
+
+    # actual (ground-truth) reward
+    plt.errorbar(its, avg_true_r, yerr=std_true_r,
+                    label="true $r(x)$", marker='o', capsize=3)
+
+    # predicted reward
+    plt.errorbar(its, avg_pred_r, yerr=std_pred_r,
+                label="predicted $\hat r(x)$", marker='s', capsize=3)
+
+    plt.xlabel("fine-tuning iteration")
+    plt.ylabel("reward")
+    plt.title("Average ±1 std   per iteration")
+    plt.legend()
+    plt.tight_layout()
+    #plt.savefig(Path(ft_cfg.get("output_dir","outputs"))/"reward_tracking.png")
+    plt.show()
