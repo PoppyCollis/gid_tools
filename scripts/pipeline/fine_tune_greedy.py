@@ -25,8 +25,11 @@ logger.addHandler(ch)
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--config", type=Path, required=True,
+    parser.add_argument("--config", 
+                        type=Path,
+                        default=Path("scripts/pipeline/config.ini"),
                         help="Path to config.ini")
+    
     args = parser.parse_args()
 
     # 1) load cfg
@@ -91,12 +94,21 @@ def main():
         
         # ---- A) sample a batch end-to-end ----
         # this returns a (B,1,H,W) tensor with grad
-        x0 = diffusion.sampling(n_samples=B,
-                                 image_channels=1,
-                                 img_size=(32,32),
-                                 use_tqdm=True,
-                                 require_grad=True) \
-                       .to(device)
+        # x0 = diffusion.sampling(n_samples=B,
+        #                          image_channels=1,
+        #                          img_size=(32,32),
+        #                          use_tqdm=True,
+        #                          require_grad=True) \
+        #                .to(device)
+        with torch.set_grad_enabled(True):
+            x0 = diffusion.unrolled_sampling(
+                n_samples=B,
+                image_channels=1,
+                img_size=(32, 32),
+                use_tqdm=True,
+                trunc_backprop_steps=50  # or 100, tune this
+            )
+                    
         
         save_samples(
             samples=x0, 

@@ -42,7 +42,7 @@ def save_samples(
     for idx, img in enumerate(samples):
         # Convert torch.Tensor to numpy if needed
         if hasattr(img, "cpu"):
-            img = img.cpu().numpy()
+            img = img.cpu().detach().numpy()
 
         # Move channel dimension if needed
         # Accept shapes [C, H, W] or [H, W, C]
