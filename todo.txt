@@ -27,7 +27,15 @@ The first hurdle is.. look at the error curves of the reward model with a fixed 
 
 
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+Keep track of tricks and hyperparameters:
 
+- backprop_truncation length for unrolled sampling tracking of gradients (detach computational graph early and dont track full graph)
+- gradient checkpointing
+- unrolled sampling - Backprop through the UNet calls per step not through the full unrolled sequence of latents. This allows gradients to flow back into the current 
+step’s UNet, but not back through the full latent chain — avoiding storing the full graph.
+
+
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 notes:
 
 molecule datasets 

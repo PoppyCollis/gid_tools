@@ -45,15 +45,22 @@ def main():
     ckpt_path    = download_checkpoint(project_root)
     logger.info(f"Using diffusion ckpt at {ckpt_path}")
 
-    # 3) build models
-    model   = UNet(ch=128, in_ch=1).to(device)
-    diffusion = DiffusionModel(T=1000, model=model, device=device)
+    # 3) build tunable and prior models
+    model   = UNet(ch=128, in_ch=1).to(device) # tunable model
+    model_orig = UNet(ch=128, in_ch=1).to(device) # orginal prior diffusion model
+    
+    # load pretrained diffusion checkpoints
     ckpt     = torch.load(ckpt_path, map_location=device)
     state    = ckpt.get("model_state_dict", ckpt) if isinstance(ckpt, dict) else ckpt
     model.load_state_dict(state)
+    model_orig.load_state_dict(state)
+    
     model.train()
-    for p in model.parameters():
+    for p in model.parameters(): # is this redundant given model.train()?
         p.requires_grad = True
+    model_orig.eval() 
+    
+    diffusion = DiffusionModel(T=1000, model=model, device=device, model_orig=model_orig)    
 
     # 4) hook up the reward-env
     env = ToolRewardEnv(default_method=eval_cfg.get("method","pixel_area"))
@@ -88,28 +95,24 @@ def main():
         # check parameters are changing
         before_norm = par0.data.clone()
         
-        OUTPUT_DIR = Path(ft_cfg.get("output_dir", "greedy_outputs")) / f"iter_{it:03d}"
+        OUTPUT_DIR = Path(ft_cfg.get("output_dir", "regularised_outputs")) / f"iter_{it:03d}"
         OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
         
         # ---- A) sample a batch end-to-end ----
         # this returns a (B,1,H,W) tensor with grad
-        # x0 = diffusion.sampling(n_samples=B,
-        #                          image_channels=1,
-        #                          img_size=(32,32),
-        #                          use_tqdm=True,
-        #                          require_grad=True) \
-        #                .to(device)
-        with torch.set_grad_enabled(True):
-            x0 = diffusion.unrolled_sampling(
-                n_samples=B,
-                image_channels=1,
-                img_size=(32, 32),
-                use_tqdm=True,
-                trunc_backprop_steps=50  # or 100, tune this
-            )
-                    
+
+        # here I want to accumulate the KL-terms during unrolled sampling
+        # run for diffusion and diffusion_orig
         
+        with torch.set_grad_enabled(True):
+            x0, kl_z_total, kl_Z_total = diffusion.unrolled_sampling_with_kls(
+                n_samples=B,
+                use_tqdm=True, 
+                return_all_latents=False,
+                trunc_backprop_steps=50
+            ) # returns (x, kl_z_total, kl_Z_total)
+           
         save_samples(
             samples=x0, 
             output_dir=OUTPUT_DIR,
@@ -162,8 +165,17 @@ def main():
         reward_head.eval()
         t0 = torch.zeros((B,),dtype=torch.long,device=device)
         fx = extractor.extract(x0, t=t0)      # [B,256]
+        
+        # reward term in loss
         pred_r = reward_head(fx)             # [B]
-        diff_loss = - pred_r.mean()
+        
+        # add in KL terms to loss
+        gamma_z = ft_cfg.getfloat("kl_gamma_z_prev", 1.0) # regularisation strength for KL_z (previous timestep)
+        gamma_Z  = ft_cfg.getfloat("kl_gamma_z_pre", 1.0) # regularisation strength for KL_Z (pretrained)
+
+        kl_reg = gamma_z * kl_z_total.mean() + gamma_Z * kl_Z_total.mean()
+        diff_loss = - pred_r.mean() + kl_reg
+        
 
         opt_diff.zero_grad()
         diff_loss.backward()

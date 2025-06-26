@@ -59,6 +59,9 @@ ehthumbs.db
 
 # Ignore generated outputs
 outputs/
+greedy_outputs/
+regularised_outputs/
+
 scripts/pipeline/samples/
 scripts/pipeline/features/
 scripts/pipeline/features_ground_truth/
