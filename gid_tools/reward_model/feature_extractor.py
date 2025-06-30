@@ -81,7 +81,7 @@ class UnetFeatureExtractor(BaseFeatureExtractor):
 # Alternative extractor
 class AutoencoderFeatureExtractor(BaseFeatureExtractor):
     """
-    Uses a pretrained encoder (e.g., from an autoencoder) to extract embeddings.
+    Uses a pretrained autoencoder to extract embeddings.
     """
     def __init__(self, encoder: nn.Module, device=None):
         super().__init__()
