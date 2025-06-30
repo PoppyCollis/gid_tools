@@ -19,8 +19,8 @@ def _get_cnn():
     global _model
     if _model is None:
         # new: point to top‐level checkpoints/
-        this_dir      = Path(__file__).resolve().parent            # .../envs
-        classifier_dir= this_dir / "training_functions" / "classifier"
+        this_dir = Path(__file__).resolve().parent            # .../envs
+        classifier_dir = this_dir / "training_functions" / "classifier"
 
         # read model_output from its config
         cfg = configparser.ConfigParser()

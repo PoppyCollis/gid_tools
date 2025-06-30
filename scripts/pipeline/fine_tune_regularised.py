@@ -65,7 +65,7 @@ def main():
     diffusion = DiffusionModel(T=1000, model=model, device=device, model_orig=model_orig)    
 
     # 4) hook up the reward-env
-    env = ToolRewardEnv(default_method=eval_cfg.get("method","pixel_area"))
+    env = ToolRewardEnv(default_method=eval_cfg.get("method","cnn_prob"))
 
     # 5) set up feature extractor & reward-head
     extractor = UnetFeatureExtractor(unet_ckpt_path=ckpt_path,
@@ -144,7 +144,8 @@ def main():
         std_true_r.append( yt.std().item())
         avg_pred_r.append( pred_r.mean().item())
         std_pred_r.append( pred_r.std().item())
-            
+        
+        # add current features and rewards to the full dataset
         all_feats.append(feats)
         all_yt.append(yt)
         
