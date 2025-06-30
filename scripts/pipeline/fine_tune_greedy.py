@@ -61,7 +61,8 @@ def main():
     # 5) set up feature extractor & reward-head
     extractor  = UnetFeatureExtractor(unet_ckpt_path=ckpt_path,
                                       ch=128, in_ch=1, device=device)
-    reward_head= RewardMLP(input_dim=2*128).to(device)
+    input_dim = 256*4*4
+    reward_head= RewardMLP(input_dim=input_dim).to(device)
 
     # 6) optimizers
     opt_diff   = Adam(model.parameters(), lr=ft_cfg.getfloat("lr_diff",1e-5))

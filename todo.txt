@@ -1,30 +1,3 @@
-go through each script in the pipeline and check logic and inspect representations at each layer.
-
-1. generator - done
-2. evauate - done
-3. feature_extraction
-check pooling makes sense / drop GAP and fit parameters of GFP network
- a. Linear reward model 
- do I seprate feature extraction and not do the unet hook here? yes probably.
- b. reward MLP
- optimise the architecture size etc -- whats best for training? what do they do in the molecule dataset?
-
-Why are the training loss curves so variable? why batch 32
-
-1. check input dimension as pooling right now...
-2. tidy up because need to take out linear reward model but still have some kind ofn unet hook -- I want this separate though
-3. is there a way of plugging keyword args into a config file so that when i run_pipeline, I dont have to individually go into generator script
-and change the batch_size (for example)
-4. can I just do a linear reward model straight on the 256 datapoints. ridge regression
-5. should I normalise the output of the pixel area to be between 0 and 1 ?? yes
-
-Leave it so that the main thing that i play around with will be...
-- type of embedding (either pretrained autoencoder, unet features)
-- reward MLP architecture
-everything else should basically be standardised.
-
-The first hurdle is.. look at the error curves of the reward model with a fixed feedback budget. Should be within the 100s.
-
 
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 Keep track of tricks and hyperparameters:
@@ -33,7 +6,19 @@ Keep track of tricks and hyperparameters:
 - gradient checkpointing
 - unrolled sampling - Backprop through the UNet calls per step not through the full unrolled sequence of latents. This allows gradients to flow back into the current 
 step’s UNet, but not back through the full latent chain — avoiding storing the full graph.
+- Feature extraction from unet (flattened to 256 * 4 * 4) and then normalised (do we want this normalisation?)
+- Tune learning rates of reward head and diffusion backbone
 
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+To do:
+
+Leave it so that the main thing that i play around with will be...
+- type of embedding (either pretrained autoencoder, unet features)
+- reward MLP architecture
+everything else should basically be standardised.
+
+More comlex environmental feedback function
+Uncertainty oracle g
 
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 notes:

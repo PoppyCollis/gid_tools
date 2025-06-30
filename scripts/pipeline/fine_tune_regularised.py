@@ -16,6 +16,8 @@ from gid_tools.envs.feedback import ToolRewardEnv
 from gid_tools.reward_model.feature_extractor import UnetFeatureExtractor
 from gid_tools.reward_model.reward_mlp import RewardMLP
 
+import matplotlib.pyplot as plt
+
 # === logger setup ===
 logger = logging.getLogger("greedy_finetune")
 logger.setLevel(logging.INFO)
@@ -66,18 +68,20 @@ def main():
     env = ToolRewardEnv(default_method=eval_cfg.get("method","pixel_area"))
 
     # 5) set up feature extractor & reward-head
-    extractor  = UnetFeatureExtractor(unet_ckpt_path=ckpt_path,
+    extractor = UnetFeatureExtractor(unet_ckpt_path=ckpt_path,
                                       ch=128, in_ch=1, device=device)
-    reward_head= RewardMLP(input_dim=2*128).to(device)
+    
+    input_dim = 256*4*4 # greyscale x unet feature dims
+    reward_head= RewardMLP(input_dim=input_dim).to(device)
 
     # 6) optimizers
-    opt_diff   = Adam(model.parameters(), lr=ft_cfg.getfloat("lr_diff",1e-5))
-    opt_rew    = Adam(reward_head.parameters(), lr=ft_cfg.getfloat("lr_rew",1e-3))
-    criterion  = MSELoss()
+    opt_diff = Adam(model.parameters(), lr=ft_cfg.getfloat("lr_diff",1e-5))
+    opt_rew  = Adam(reward_head.parameters(), lr=ft_cfg.getfloat("lr_rew",1e-3))
+    criterion = MSELoss()
 
-    B       = ft_cfg.getint("batch_size", 16)
-    K       = ft_cfg.getint("num_iters",   5)
-    epochs  = ft_cfg.getint("reward_epochs", 5)
+    B = ft_cfg.getint("batch_size", 16)
+    K = ft_cfg.getint("num_iters",   5)
+    epochs = ft_cfg.getint("reward_epochs", 5)
 
     all_feats = []
     all_yt = []
@@ -186,13 +190,16 @@ def main():
         
          # compute how much that parameter moved - sanity check
         delta = torch.norm(after_norm - before_norm).item()
-        logger.info(f"iter {it:3d} ‖Δparam0‖₂ = {delta:.4e}  diff_loss={diff_loss.item():.4f}")
+        logger.info(f"iter {it:3d} ‖Δparam0‖₂ = {delta:.4e}  diff_loss={diff_loss.item():.3f}")
 
 
-        logger.info(f"[iter {it}/{K}] reward_head MSE={criterion(reward_head(fx),yt).item():.3f}"
-                    + f"   diff_loss = {diff_loss.item():.3f}")
+        logger.info(f"[iter {it}/{K}] reward_head MSE={criterion(reward_head(fx),yt).item():.3f}")
+        
+        logger.info(f"[iter {it}/{K}], avg true = {yt.mean().item()}, avg_pred = {pred_r.mean().item()}")
         
         torch.cuda.empty_cache()
+        
+    print(avg_pred_r, avg_true_r)
 
 
     logger.info("Finished greedy fine-tuning.")

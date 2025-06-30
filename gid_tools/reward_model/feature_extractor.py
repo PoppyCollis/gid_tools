@@ -55,9 +55,31 @@ class UnetFeatureExtractor(BaseFeatureExtractor):
         # output: Tensor [B, C_mid, H_mid, W_mid]
         self._mid_feats = output
 
+    # def extract(self, x: torch.Tensor, t: torch.Tensor) -> torch.Tensor:
+    #     """
+    #     Run UNet forward to capture features, then global‐average pool and normalize.
+
+    #     Parameters
+    #     ----------
+    #     x : torch.Tensor
+    #         Input image tensor [B, in_ch, H, W].
+    #     t : torch.Tensor
+    #         Timesteps tensor [B].
+
+    #     Returns
+    #     -------
+    #     torch.Tensor
+    #         Normalized feature tensor [B, C_mid].
+    #     """
+    #     _ = self.unet(x.to(self.device), t.to(self.device))
+    #     feats = self._mid_feats                              # [B, C_mid, h, w]
+    #     pooled = feats.mean(dim=(2, 3))                      # [B, C_mid]
+    #     normed = pooled / (pooled.norm(dim=1, keepdim=True) + 1e-6)
+    #     return normed
+    
     def extract(self, x: torch.Tensor, t: torch.Tensor) -> torch.Tensor:
         """
-        Run UNet forward to capture features, then global‐average pool and normalize.
+        Run UNet forward to capture features, then flatten spatial features and normalise
 
         Parameters
         ----------
@@ -69,12 +91,13 @@ class UnetFeatureExtractor(BaseFeatureExtractor):
         Returns
         -------
         torch.Tensor
-            Normalized feature tensor [B, C_mid].
+            Flattened mid-level feature tensor [B, C_mid * h * w].
         """
         _ = self.unet(x.to(self.device), t.to(self.device))
-        feats = self._mid_feats                              # [B, C_mid, h, w]
-        pooled = feats.mean(dim=(2, 3))                      # [B, C_mid]
-        normed = pooled / (pooled.norm(dim=1, keepdim=True) + 1e-6)
+        feats = self._mid_feats # [B, C_mid, h, w]
+        flat_feats = feats.reshape(feats.size(0), -1)  # [B, C_mid * h * w]
+        normed = flat_feats / (flat_feats.norm(dim=1, keepdim=True) + 1e-6)
+
         return normed
 
     

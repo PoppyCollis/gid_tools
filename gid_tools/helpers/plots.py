@@ -145,9 +145,6 @@ def make_bracket_image(lengths, thicknesses, angles, global_rot,
     im = im.filter(ImageFilter.GaussianBlur(radius=blur_radius))
     return im.resize((canvas_size,canvas_size), Image.LANCZOS)
 
-
-import matplotlib.pyplot as plt
-
 def plot_reward_mlp_training_loss(
     avg_losses,
     std_losses,
