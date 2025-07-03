@@ -142,8 +142,7 @@ def main():
         
         avg_true_r.append( yt.mean().item())
         std_true_r.append( yt.std().item())
-        avg_pred_r.append( pred_r.mean().item())
-        std_pred_r.append( pred_r.std().item())
+        
         
         # add current features and rewards to the full dataset
         all_feats.append(feats)
@@ -173,6 +172,9 @@ def main():
         
         # reward term in loss
         pred_r = reward_head(fx)             # [B]
+        
+        avg_pred_r.append( pred_r.mean().item())
+        std_pred_r.append( pred_r.std().item())
         
         # add in KL terms to loss
         gamma_z = ft_cfg.getfloat("kl_gamma_z_prev", 1.0) # regularisation strength for KL_z (previous timestep)
