@@ -23,6 +23,49 @@ Uncertainty oracle g
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 notes:
 
+A. How do we backpropagate the rewards with a reward head?
+
+1. Forward pass builds computation graph:
+x = diffusion_model(z)              # generated image
+features = extractor(x)        # frozen or learnable
+r̂ = reward_head(features)     # learned MLP
+
+2. Use predicted reward (optionally trained separately)
+loss = -r̂.mean() + kl_reg
+
+3. Backward pass updates diffusion model (and optionally reward model)
+loss.backward()
+optimizer.step()
+
+Gradients flow: ∂(loss)/∂r̂ → ∂r̂/∂features → ∂features/∂x → ∂x/∂θ_diff
+
+If training reward head, you also compute ∂r̂/∂θ_reward.
+
+B. How do we backpropagate the rewards without a reward head?
+
+
+1. Forward pass builds computation graph:
+x = diffusion_model(z)              # generated image
+
+2. We then continue with:
+logits = cnn(x)                     # fixed classifier
+loss = cross_entropy(logits, label)  # reward loss
+which appends to the same computation graph..
+
+3. When you call:
+loss.backward()                     # backpropagate
+PyTorch starts at loss and walks backward through the graph to compute gradients of every parameter involved in computing loss.
+
+
+
+
+
+
+
+
+
+
+
 molecule datasets 
 It’s important to note that this experiment is conducted on a simplified scale, as we
 utilize a trained oracle instead of a real black box oracle for evaluation.
