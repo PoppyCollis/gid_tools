@@ -49,12 +49,11 @@ class CNNToolDataset(Dataset):
         ])
         # Map your text labels to integers
         self.label_map = {
-            "T": 0,
-            "V": 1,
-            # add your other classes here, e.g.:
-            # "[]_open": 2,
-            # "[]_closed": 3,
-            # … 
+            "straight": 0,
+            "L": 1,
+            "Z": 2,
+            "V": 3,
+            "T": 4
         }
 
     def __len__(self):

@@ -219,3 +219,27 @@ def plot_tuning_stats(K, avg_true_r, std_true_r, avg_pred_r, std_pred_r):
     plt.savefig(output_path)
 
     plt.show()
+    
+
+def plot_reward_tuning(avg_true_r, K):
+    its = list(range(1, K + 1))
+    plt.figure(figsize=(8, 4))
+
+    # actual (ground-truth) reward
+    plt.plot(its, avg_true_r)
+
+    plt.xlabel("fine-tuning iteration")
+    plt.ylabel("Reward (CE loss)")
+    plt.title("Average ±1 std   per iteration")
+    plt.tight_layout()
+
+    # Ensure output directory exists
+    output_dir = Path("regularised_outputs")
+    output_dir.mkdir(parents=True, exist_ok=True)
+
+    # Save the plot
+    output_path = output_dir / "reward_tuning.png"
+    plt.savefig(output_path)
+
+    plt.show()
+

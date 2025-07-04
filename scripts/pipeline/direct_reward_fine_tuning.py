@@ -14,7 +14,7 @@ import logging
 from gid_tools.diffusion_model.unet import UNet
 from gid_tools.diffusion_model.diffusion import DiffusionModel
 from gid_tools.helpers.utils import load_config, download_checkpoint, save_samples
-from gid_tools.helpers.plots import plot_tuning_stats
+from gid_tools.helpers.plots import plot_tuning_stats, plot_reward_tuning
 from gid_tools.envs.feedback import ToolRewardEnv
 from gid_tools.envs.training_functions.classifier.cnn import ToolCNN
 
@@ -47,6 +47,7 @@ def main():
     
     target_class = ft_cfg.getint("target_class", 4)
 
+    print(f"target class = {target_class}")
     
     # 2) download + load diffusion checkpoint
     project_root = args.config.resolve().parents[2]
@@ -71,9 +72,20 @@ def main():
     diffusion = DiffusionModel(T=1000, model=model, device=device, model_orig=model_orig)  
 
     # 4) hook up the differentiable CNN as environment
-    cnn = ToolCNN(num_classes=5).to(device).eval()
-    for p in cnn.parameters(): 
+    cnn = ToolCNN(num_classes=5).to(device)
+
+    # ─── load your pretrained classifier weights ───
+    model_path = project_root / "gid_tools" /"envs" / "training_functions" / "classifier" / "checkpoints" /"model.pth"
+    state = torch.load(model_path, map_location=device)
+    cnn.load_state_dict(state)
+    logger.info(f"Using CNN ckpt at {model_path}")
+
+    cnn.eval()
+    for p in cnn.parameters():
         p.requires_grad = False
+        
+    
+
 
     # 6) optimizers
     opt_diff = Adam(model.parameters(), lr=ft_cfg.getfloat("lr_diff",1e-3))
@@ -106,7 +118,7 @@ def main():
                 n_samples=B,
                 use_tqdm=True, 
                 return_all_latents=False,
-                trunc_backprop_steps=50
+                trunc_backprop_steps=2
             ) # returns (x, kl_z_total, kl_Z_total)
            
         save_samples(
@@ -125,31 +137,49 @@ def main():
             dtype=torch.long, 
             device=device
         )
+        
+        print(labels)
                 
         # 2) Forward through frozen CNN and get CE loss
         logits   = cnn(x0)                                    # [B,5]
+        predicted_labels = logits.argmax(dim=1)  # [B]
+        logger.info(f"Predicted labels: {predicted_labels.tolist()}")
+
+
         ce_loss  = F.cross_entropy(logits, labels, reduction="mean")
+        
+        # # Margin loss (logit difference)
+        # margin = 1.0
+        # target_logits = logits.gather(1, labels.unsqueeze(1)).squeeze(1)  # z_y
+        # # Soft margin: log-sum-exp over incorrect classes
+        # mask = torch.ones_like(logits).bool()
+        # mask[torch.arange(B), labels] = False
+        # logsumexp_other = torch.logsumexp(logits[mask].view(B, -1), dim=1)
+        # margin_loss = F.relu(margin - (target_logits - logsumexp_other)).mean()
         
         # check classifier probabilities
         probs = logits.softmax(-1)              # [B,5]
-        logger.info(f"mean p0={probs[:,0].mean():.3f}, "
-                    f"min p0={probs[:,0].min():.3f}, "
-                    f"max p0={probs[:,0].max():.3f}, ")
+        logger.info(f"mean p_target={probs[:,target_class].mean():.3f}, "
+                    f"min p_target={probs[:,target_class].min():.3f}, "
+                    f"max p_target={probs[:,target_class].max():.3f}, ")
         
-        per_sample = F.cross_entropy(logits, labels, reduction="none")  # [B]
-        logger.info(f"CE per-sample: mean={per_sample.mean():.3f}, "
-                    f"std={per_sample.std():.3f}")
+        # per_sample = F.cross_entropy(logits, labels, reduction="none")  # [B]
+        # logger.info(f"CE per-sample: mean={per_sample.mean():.3f}, "
+        #             f"std={per_sample.std():.3f}")
 
         avg_true_r.append(ce_loss.item())
+        # avg_true_r.append(margin_loss.item())
         
         # 3) KL regulariser
         gamma_z = ft_cfg.getfloat("kl_gamma_z_prev", 1.0) # regularisation strength for KL_z (previous timestep)
         gamma_Z  = ft_cfg.getfloat("kl_gamma_z_pre", 1.0) # regularisation strength for KL_Z (pretrained)
 
         kl_reg = gamma_z * kl_z_total.mean() + gamma_Z * kl_Z_total.mean()
+        #kl_reg = gamma_z * kl_z_total + gamma_Z * kl_Z_total
         
          # 4) Total loss: cross-entropy + kl
         diff_loss = ce_loss + kl_reg
+        # diff_loss = margin_loss + kl_reg
 
         # 5) Backprop into diffusion model only
         opt_diff.zero_grad()
@@ -163,7 +193,9 @@ def main():
         total_ce_grad = sum(p.grad.norm() for p in model.parameters())
         logger.info(f"CE-grad norm={total_ce_grad:.3e}")
 
-        logger.info(f"[iter {it}/{K}] CE_loss={ce_loss:.3f}, regKL= {gamma_z * kl_z_total.mean()}, {gamma_Z * kl_Z_total.mean()}  total={diff_loss:.3f}")
+        #logger.info(f"[iter {it}/{K}] Margin_loss = {margin_loss:.3f}, regKL= {gamma_z *  kl_z_total.mean()}, {gamma_Z * kl_Z_total.mean()}  total={diff_loss:.3f}")
+        logger.info(f"[iter {it}/{K}] CE_loss={ce_loss:.3f},  regKL= {gamma_z * kl_z_total.mean()}, {gamma_Z * kl_Z_total.mean()}  total={diff_loss:.3f}")
+
         torch.cuda.empty_cache()
         
         # sanity check parameters are changing
@@ -176,15 +208,13 @@ def main():
         
         
         torch.cuda.empty_cache()
-        
-        
+    
 
 
     logger.info("Finished greedy fine-tuning.")
     
-    #plot_tuning_stats(K, avg_true_r, std_true_r)
-    plt.plot(np.arange(len(avg_true_r)), avg_true_r)
-    plt.show()
+    plot_reward_tuning(avg_true_r, K)
+
     
 
 if __name__ == "__main__":
