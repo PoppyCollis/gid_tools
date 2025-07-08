@@ -243,3 +243,28 @@ def plot_reward_tuning(avg_true_r, K):
 
     plt.show()
 
+
+def plot_mean_p_target(K, mean_p_targets, target_class):
+
+    its = list(range(1, K + 1))
+    plt.figure(figsize=(8, 4))
+
+    # actual (ground-truth) reward
+    plt.plot(its, mean_p_targets)
+
+    plt.xlabel("fine-tuning iteration")
+    plt.ylabel("Prob of target class")
+    plt.title(f"Target Class = {target_class}")
+    plt.tight_layout()
+
+    # Ensure output directory exists
+    output_dir = Path("regularised_outputs")
+    output_dir.mkdir(parents=True, exist_ok=True)
+
+    # Save the plot
+    output_path = output_dir / "mean_p_targets.png"
+    plt.savefig(output_path)
+
+    plt.show()
+
+

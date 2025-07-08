@@ -20,8 +20,16 @@ everything else should basically be standardised.
 More comlex environmental feedback function
 Uncertainty oracle g
 
+
+PABLO SUGGESTION
+# annealing schedule for kl reg...
+# task conditioning is key
+# affordance guidance -- pretrained systems for getting the affordance of a tool.
+
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 notes:
+
+SHOULD MY FEATURE EMBEDDING NETWORK BE INCLUDED IN THE AUTOGRAD COMPUTATIONAL GRAPH?
 
 A. How do we backpropagate the rewards with a reward head?
 

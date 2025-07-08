@@ -14,7 +14,7 @@ import logging
 from gid_tools.diffusion_model.unet import UNet
 from gid_tools.diffusion_model.diffusion import DiffusionModel
 from gid_tools.helpers.utils import load_config, download_checkpoint, save_samples
-from gid_tools.helpers.plots import plot_tuning_stats, plot_reward_tuning
+from gid_tools.helpers.plots import plot_tuning_stats, plot_reward_tuning, plot_mean_p_target
 from gid_tools.envs.feedback import ToolRewardEnv
 from gid_tools.envs.training_functions.classifier.cnn import ToolCNN
 
@@ -94,6 +94,7 @@ def main():
     K = ft_cfg.getint("num_iters",   5)
 
     avg_true_r = []
+    mean_p_targets = []
     
     # check parameters are changing
     par0 = next(model.parameters())
@@ -127,8 +128,7 @@ def main():
             prefix="sample",
             scale_to_uint8=True
         )
-        
-        
+                
         # ---- D) direct reward backprop through diffusion ----
          # 1) Create a [B] tensor where every entry == target_class
         labels = torch.full(
@@ -137,14 +137,11 @@ def main():
             dtype=torch.long, 
             device=device
         )
-        
-        print(labels)
-                
+                        
         # 2) Forward through frozen CNN and get CE loss
         logits   = cnn(x0)                                    # [B,5]
         predicted_labels = logits.argmax(dim=1)  # [B]
         logger.info(f"Predicted labels: {predicted_labels.tolist()}")
-
 
         ce_loss  = F.cross_entropy(logits, labels, reduction="mean")
         
@@ -159,10 +156,10 @@ def main():
         
         # check classifier probabilities
         probs = logits.softmax(-1)              # [B,5]
-        logger.info(f"mean p_target={probs[:,target_class].mean():.3f}, "
-                    f"min p_target={probs[:,target_class].min():.3f}, "
-                    f"max p_target={probs[:,target_class].max():.3f}, ")
-        
+        mean_p_target = probs[:,target_class].mean().detach().cpu().numpy() 
+        logger.info(f"mean p_target={mean_p_target:.3f},")
+        mean_p_targets.append(mean_p_target)
+
         # per_sample = F.cross_entropy(logits, labels, reduction="none")  # [B]
         # logger.info(f"CE per-sample: mean={per_sample.mean():.3f}, "
         #             f"std={per_sample.std():.3f}")
@@ -185,7 +182,7 @@ def main():
         opt_diff.zero_grad()
         diff_loss.backward()
         
-        clip_grad_norm_(model.parameters(), max_norm=0.1) # clip gradients
+        clip_grad_norm_(model.parameters(), max_norm=0.001) # clip gradients
 
         opt_diff.step()
         
@@ -214,6 +211,7 @@ def main():
     logger.info("Finished greedy fine-tuning.")
     
     plot_reward_tuning(avg_true_r, K)
+    plot_mean_p_target(K, mean_p_targets, target_class)
 
     
 
