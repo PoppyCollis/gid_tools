@@ -211,3 +211,73 @@ def save_split(loader, out_path):
     print(f"  • Saved {all_tensor.shape[0]} samples to {out_path}")
         
         
+from pathlib import Path
+from math import ceil, sqrt
+import numpy as np
+import torch
+from PIL import Image
+
+def save_samples_collage(
+    samples,
+    output_dir: Union[Path, str],
+    prefix: str = "sample_collage",
+    scale_to_uint8: bool = True,
+    nrow: int = None,
+):
+    """
+    Tile a batch of image tensors or numpy arrays into one big PNG.
+
+    Args:
+        samples (Iterable[torch.Tensor] or Iterable[np.ndarray]):
+            List or tensor of image samples. Each sample should be shape [C, H, W] or [H, W].
+        output_dir (Path or str):
+            Directory where the collage will be saved.
+        prefix (str):
+            Filename prefix for the collage (default: "sample_collage").
+        scale_to_uint8 (bool):
+            If True, scales values from [-1,1] to [0,255] before converting to uint8.
+        nrow (int, optional):
+            Number of images per row. If None, uses ceil(sqrt(N)).
+    """
+    output_path = Path(output_dir)
+    output_path.mkdir(parents=True, exist_ok=True)
+
+    # Convert all to numpy arrays and canonical H×W×C
+    imgs = []
+    for img in samples:
+        if hasattr(img, "cpu"):
+            img = img.cpu().detach().numpy()
+        if img.ndim == 3 and img.shape[0] in (1, 3):
+            img = np.transpose(img, (1, 2, 0))
+        if img.ndim == 3 and img.shape[2] == 1:
+            img = img[:, :, 0]
+        if scale_to_uint8:
+            img = ((img + 1) * 127.5).clip(0, 255).astype(np.uint8)
+        imgs.append(img)
+
+    N = len(imgs)
+    if N == 0:
+        raise ValueError("No images to save.")
+
+    # Determine grid size
+    if nrow is None:
+        nrow = int(ceil(sqrt(N)))
+    ncol = int(ceil(N / nrow))
+
+    # Get individual image size (assume all same)
+    H, W = imgs[0].shape[:2]
+    mode = "L" if imgs[0].ndim == 2 else "RGB"
+
+    # Create canvas
+    canvas = Image.new(mode, (W * nrow, H * ncol))
+
+    # Paste each image
+    for idx, img in enumerate(imgs):
+        row = idx % nrow
+        col = idx // nrow
+        pil = Image.fromarray(img)
+        canvas.paste(pil, (row * W, col * H))
+
+    # Save
+    filename = f"{prefix}.png"
+    canvas.save(output_path / filename)

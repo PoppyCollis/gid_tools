@@ -83,8 +83,6 @@ def main():
     cnn.eval()
     for p in cnn.parameters():
         p.requires_grad = False
-        
-    
 
 
     # 6) optimizers
@@ -92,6 +90,12 @@ def main():
 
     B = ft_cfg.getint("batch_size", 16)
     K = ft_cfg.getint("num_iters",   5)
+    
+    
+    # KL strength schedule: from 0.1 → 0.001 over K steps
+    # you can also expose these in your .ini if you like
+    initial_gamma_z = 0.1
+    final_gamma_z   = 0.001
 
     avg_true_r = []
     mean_p_targets = []
@@ -100,6 +104,16 @@ def main():
     par0 = next(model.parameters())
     
     for it in range(1, K+1):
+        
+        # compute decayed KL strengths
+        progress = (it-1) / (K-1) if K > 1 else 1.0
+        # linear decay:
+        #gamma_z = initial_gamma_z + progress * (final_gamma_z - initial_gamma_z)
+        # if you prefer exponential decay, uncomment:
+        gamma_z = initial_gamma_z * (final_gamma_z/initial_gamma_z)**(progress*4)
+
+        logger.info(f"Iteration {it}/{K}: γz={gamma_z:.4f}")
+        # ——————————————————————————————————————
         
         # check parameters are changing
         before_norm = par0.data.clone()
@@ -182,7 +196,7 @@ def main():
         opt_diff.zero_grad()
         diff_loss.backward()
         
-        clip_grad_norm_(model.parameters(), max_norm=0.001) # clip gradients
+        clip_grad_norm_(model.parameters(), max_norm=0.1) # clip gradients
 
         opt_diff.step()
         
