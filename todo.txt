@@ -1,3 +1,15 @@
+chris meeting 10/07
+
+try huge batch - change KL to the forward kl - mode covering verses mode mathing
+
+Switch to margin loss?
+
+check t = 1000 in original SEIKO code, 
+
+extreme small learning rate check that it smooths
+
+
+
 
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 Keep track of tricks and hyperparameters:

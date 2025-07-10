@@ -110,7 +110,7 @@ def main():
         # linear decay:
         #gamma_z = initial_gamma_z + progress * (final_gamma_z - initial_gamma_z)
         # if you prefer exponential decay, uncomment:
-        gamma_z = initial_gamma_z * (final_gamma_z/initial_gamma_z)**(progress*4)
+        gamma_z = initial_gamma_z * (final_gamma_z/initial_gamma_z)**(progress)
 
         logger.info(f"Iteration {it}/{K}: γz={gamma_z:.4f}")
         # ——————————————————————————————————————
@@ -196,7 +196,7 @@ def main():
         opt_diff.zero_grad()
         diff_loss.backward()
         
-        clip_grad_norm_(model.parameters(), max_norm=0.1) # clip gradients
+        clip_grad_norm_(model.parameters(), max_norm=0.01) # clip gradients
 
         opt_diff.step()
         
@@ -227,6 +227,7 @@ def main():
     plot_reward_tuning(avg_true_r, K)
     plot_mean_p_target(K, mean_p_targets, target_class)
 
+    print(mean_p_targets)
     
 
 if __name__ == "__main__":
