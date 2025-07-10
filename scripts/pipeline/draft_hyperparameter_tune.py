@@ -22,6 +22,7 @@ from gid_tools.helpers.plots import plot_tuning_stats, plot_reward_tuning, plot_
 from gid_tools.envs.feedback import ToolRewardEnv
 from gid_tools.envs.training_functions.classifier.cnn import ToolCNN
 
+<<<<<<< HEAD
 import os
 import matplotlib.pyplot as plt
 
@@ -52,10 +53,29 @@ def plot_reward_tuning(df, out_dir=None, fname="reward_tuning.png"):
             marker='o',
             label=f'p: γ_prev={g_prev}, γ_pre={g_pre}'
         )
+=======
+import matplotlib.pyplot as plt
+import numpy as np
+
+def plot_reward_tuning(df):
+    """
+    Plot both post-update p_target and CE loss vs learning rate,
+    for each (gamma_prev, gamma_pre) combination.
+    """
+    groups = df.groupby(['gamma_prev', 'gamma_pre'])
+    fig, ax1 = plt.subplots()
+
+    # Plot p_target on the left y-axis
+    for (g_prev, g_pre), grp in groups:
+        grp = grp.sort_values('lr')
+        ax1.plot(grp['lr'], grp['post_p'], marker='o',
+                 label=f'p: γ_prev={g_prev}, γ_pre={g_pre}')
+>>>>>>> 10b5743 (sweep over learning rate to see effect on prob target label)
     ax1.set_xscale('log')
     ax1.set_xlabel('Learning rate')
     ax1.set_ylabel('Post-update p_target')
     ax1.legend(loc='upper left')
+<<<<<<< HEAD
     
     # Right y-axis: CE loss
     ax2 = ax1.twinx()
@@ -78,6 +98,20 @@ def plot_reward_tuning(df, out_dir=None, fname="reward_tuning.png"):
         save_path = os.path.join(out_dir, fname)
         fig.savefig(save_path)
         print(f"Saved plot to {save_path}")
+=======
+
+    # Plot CE loss on the right y-axis
+    ax2 = ax1.twinx()
+    for (g_prev, g_pre), grp in groups:
+        grp = grp.sort_values('lr')
+        ax2.plot(grp['lr'], grp['ce_loss'], marker='x', linestyle='--',
+                 label=f'loss: γ_prev={g_prev}, γ_pre={g_pre}')
+    ax2.set_ylabel('Post-update CE loss')
+    ax2.legend(loc='upper right')
+
+    fig.tight_layout()
+    plt.show()
+>>>>>>> 10b5743 (sweep over learning rate to see effect on prob target label)
 
 
 # === logger setup ===
@@ -198,7 +232,6 @@ def main():
     diff_loss = ce_loss + kl_reg                      # this has grad_fn
     
     print("pre_tuning target probability", pre_p)
-    
     # Compute and store gradients for each model param
     grads = torch.autograd.grad(
         outputs=diff_loss, 
@@ -240,7 +273,11 @@ def main():
         logits1  = cnn(x0)                                # frozen classifier
         ce_loss1 = F.cross_entropy(logits, labels).item()
         post_p   = logits1.softmax(-1)[:, target_class].mean().item()
+<<<<<<< HEAD
         print(f"post_p: {post_p}, lr: {lr}")
+=======
+        
+>>>>>>> 10b5743 (sweep over learning rate to see effect on prob target label)
         
         results.append({
             "lr": lr,
@@ -251,9 +288,13 @@ def main():
         })
                 
     df = pd.DataFrame(results)
+<<<<<<< HEAD
     out_dir = Path("hyperparam_plots")
     plot_reward_tuning(df, out_dir=out_dir, fname="sweep1.png")
     
+=======
+    plot_reward_tuning(df)   # or any custom plotting you like
+>>>>>>> 10b5743 (sweep over learning rate to see effect on prob target label)
     
 if __name__ == "__main__":
     main()
