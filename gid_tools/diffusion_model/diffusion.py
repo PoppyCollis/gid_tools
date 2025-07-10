@@ -178,6 +178,9 @@ class DiffusionModel:
             if noise_pred_prev is not None:
                 kl_Z_t = ((noise_pred - noise_pred_prev) ** 2).mean(dim=(1, 2, 3)) / (2 * self.beta[t])
                 kl_Z_accum.append(kl_Z_t)
+            else:
+                warnings.warn("No prev model iteration; skipping z_T computation.")
+
 
             noise_pred_prev = noise_pred.detach()  # prevent backprop through old drift
 
